@@ -75,6 +75,56 @@ const getAllListings = async (query: any) => {
     };
 };
 
+const getAdminListings = async (query: any) => {
+    const { facilityType, capacity, isActive, isApproved, search, page = 1, limit = 10 } = query;
+
+    const filter: any = { isDeleted: false };
+
+    if (facilityType) filter.facilityType = facilityType;
+    if (capacity) filter.capacity = { $gte: Number(capacity) };
+    if (isActive !== undefined && isActive !== "") {
+        filter.isActive = isActive === "true" || isActive === true;
+    }
+    if (isApproved !== undefined && isApproved !== "") {
+        filter.isApproved = isApproved === "true" || isApproved === true;
+    }
+
+    if (search) {
+        filter.$or = [
+            { name: { $regex: search, $options: "i" } },
+            { description: { $regex: search, $options: "i" } },
+            { "location.address": { $regex: search, $options: "i" } },
+        ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [listings, total] = await Promise.all([
+        ListingModel.find(filter)
+            .populate("host", "name email phone profileImage")
+            .populate("facilityType", "name slug image")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit)),
+        ListingModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / Number(limit));
+    const pageNumber = Number(page);
+
+    return {
+        meta: {
+            page: pageNumber,
+            limit: Number(limit),
+            total,
+            totalPages,
+            hasNext: pageNumber < totalPages,
+            hasPrev: pageNumber > 1,
+        },
+        data: listings,
+    };
+};
+
 const getHostListings = async (hostId: string) => {
     const listings = await ListingModel.find({ host: hostId, isDeleted: false })
         .populate("facilityType", "name slug image")
@@ -156,6 +206,7 @@ const deleteListing = async (id: string, hostId: string) => {
 export const listingServices = {
     createListing,
     getAllListings,
+    getAdminListings,
     getHostListings,
     getSingleListing,
     updateListing,

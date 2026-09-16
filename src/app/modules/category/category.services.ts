@@ -35,13 +35,17 @@ const getAllCategories = async (query: Record<string, any> = {}) => {
         .skip(skip)
         .limit(limitNumber);
 
+    const totalPages = Math.ceil(total / limitNumber);
+
     return {
         data,
         meta: {
             page: pageNumber,
             limit: limitNumber,
             total,
-            totalPages: Math.ceil(total / limitNumber),
+            totalPages,
+            hasNext: pageNumber < totalPages,
+            hasPrev: pageNumber > 1,
         },
     };
 };
@@ -108,13 +112,17 @@ const getAdminCategories = async (query: Record<string, any> = {}) => {
         .skip(skip)
         .limit(limitNumber);
 
+    const totalPages = Math.ceil(total / limitNumber);
+
     return {
         data,
         meta: {
             page: pageNumber,
             limit: limitNumber,
             total,
-            totalPages: Math.ceil(total / limitNumber),
+            totalPages,
+            hasNext: pageNumber < totalPages,
+            hasPrev: pageNumber > 1,
         },
     };
 };

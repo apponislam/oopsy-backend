@@ -39,6 +39,18 @@ const getAllListings = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getAdminListings = catchAsync(async (req: Request, res: Response) => {
+    const result = await listingServices.getAdminListings(req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Admin listings retrieved successfully",
+        data: result.data,
+        meta: result.meta,
+    });
+});
+
 const getHostListings = catchAsync(async (req: Request, res: Response) => {
     const hostId = (req as any).user._id;
     const result = await listingServices.getHostListings(hostId);
@@ -118,6 +130,7 @@ const deleteListing = catchAsync(async (req: Request, res: Response) => {
 export const listingControllers = {
     createListing,
     getAllListings,
+    getAdminListings,
     getHostListings,
     getSingleListing,
     updateListing,
