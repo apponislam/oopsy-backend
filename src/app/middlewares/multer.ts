@@ -7,9 +7,11 @@ import sharp from "sharp";
 // Ensure upload directories exist
 const profileImageDir = path.join(process.cwd(), "uploads", "profile-images");
 const productImageDir = path.join(process.cwd(), "uploads", "product-images");
+const categoryImageDir = path.join(process.cwd(), "uploads", "category-images");
 const customerServiceImageDir = path.join(process.cwd(), "uploads", "customer-service");
 if (!fs.existsSync(profileImageDir)) fs.mkdirSync(profileImageDir, { recursive: true });
 if (!fs.existsSync(productImageDir)) fs.mkdirSync(productImageDir, { recursive: true });
+if (!fs.existsSync(categoryImageDir)) fs.mkdirSync(categoryImageDir, { recursive: true });
 if (!fs.existsSync(customerServiceImageDir)) fs.mkdirSync(customerServiceImageDir, { recursive: true });
 
 // Multer memory storage
@@ -60,6 +62,33 @@ export const uploadProfileImage = (req: Request, res: Response, next: NextFuncti
 
                 // Store the relative path instead of just filename
                 file.filename = getRelativeImagePath("profile-images", newName);
+                file.path = outputPath;
+                file.mimetype = "image/webp";
+            } catch (error) {
+                return next(error);
+            }
+        }
+
+        next();
+    });
+};
+
+// Middleware for single category image upload
+export const uploadCategoryImage = (req: Request, res: Response, next: NextFunction) => {
+    const uploadSingle = upload.single("image");
+
+    uploadSingle(req, res, async (err) => {
+        if (err) return next(err);
+
+        if (req.file) {
+            try {
+                const file = req.file;
+                const newName = generateFileName("category", file.originalname);
+                const outputPath = path.join(categoryImageDir, newName);
+
+                await sharp(file.buffer).webp({ quality: 80 }).toFile(outputPath);
+
+                file.filename = getRelativeImagePath("category-images", newName);
                 file.path = outputPath;
                 file.mimetype = "image/webp";
             } catch (error) {
