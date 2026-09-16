@@ -8,12 +8,15 @@ import { authServices } from "./auth.services";
 import { getSocket } from "../../socket/socket";
 
 const register = catchAsync(async (req: Request, res: Response) => {
-    console.log(req.body);
-
-    // Handle profile image if uploaded
-    let profileImageUrl = undefined;
-    if (req.file) {
-        profileImageUrl = `/uploads/profile-images/${req.file.filename}`;
+    // Extract uploaded files (profileImage, businessDocument, governmentIssuedId)
+    const userFiles: any = {};
+    if (req.files && !Array.isArray(req.files)) {
+        const filesMap = req.files as { [fieldname: string]: Express.Multer.File[] };
+        if (filesMap["profileImage"]?.[0]) userFiles.profileImage = filesMap["profileImage"][0].filename;
+        if (filesMap["businessDocument"]?.[0]) userFiles.businessDocument = filesMap["businessDocument"][0].filename;
+        if (filesMap["governmentIssuedId"]?.[0]) userFiles.governmentIssuedId = filesMap["governmentIssuedId"][0].filename;
+    } else if (req.file) {
+        userFiles.profileImage = req.file.filename;
     }
 
     // Parse the body field if it's a string
@@ -29,6 +32,13 @@ const register = catchAsync(async (req: Request, res: Response) => {
         } catch {}
     }
 
+    let businessDetailsData = data.businessDetails || req.body.businessDetails;
+    if (typeof businessDetailsData === "string") {
+        try {
+            businessDetailsData = JSON.parse(businessDetailsData);
+        } catch {}
+    }
+
     // Parse JSON fields
     const userData: any = {
         name: data.name || req.body.name,
@@ -36,8 +46,12 @@ const register = catchAsync(async (req: Request, res: Response) => {
         password: data.password || req.body.password,
         role: data.role || req.body.role,
         phone: data.phone || req.body.phone,
-        ...(profileImageUrl && { profileImage: profileImageUrl }),
+        website: data.website || req.body.website,
+        ...(userFiles.profileImage && { profileImage: userFiles.profileImage }),
+        ...(userFiles.businessDocument && { businessDocument: userFiles.businessDocument }),
+        ...(userFiles.governmentIssuedId && { governmentIssuedId: userFiles.governmentIssuedId }),
         ...(addressData && { address: addressData }),
+        ...(businessDetailsData && { businessDetails: businessDetailsData }),
     };
 
     // Basic validation
@@ -235,23 +249,22 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
-    // Handle profile image if uploaded
-    let profileImageUrl = undefined;
-    if (req.file) {
-        profileImageUrl = `/uploads/profile-images/${req.file.filename}`;
+    // Extract uploaded files (profileImage, businessDocument, governmentIssuedId)
+    const userFiles: any = {};
+    if (req.files && !Array.isArray(req.files)) {
+        const filesMap = req.files as { [fieldname: string]: Express.Multer.File[] };
+        if (filesMap["profileImage"]?.[0]) userFiles.profileImage = filesMap["profileImage"][0].filename;
+        if (filesMap["businessDocument"]?.[0]) userFiles.businessDocument = filesMap["businessDocument"][0].filename;
+        if (filesMap["governmentIssuedId"]?.[0]) userFiles.governmentIssuedId = filesMap["governmentIssuedId"][0].filename;
+    } else if (req.file) {
+        userFiles.profileImage = req.file.filename;
     }
-
-    // Parse the body field if it's a string (standard for multipart/form-data)
-
-    console.log("req.body", req.body);
-    console.log("req.body.body", req.body.body);
 
     let data: any = {};
     if (req.body.body && typeof req.body.body === "string") {
         try {
             data = JSON.parse(req.body.body);
         } catch (error) {
-            // Fallback for cases where the body might be partially formatted
             try {
                 const bodyStr = `{${req.body.body}}`;
                 data = JSON.parse(bodyStr);
@@ -273,12 +286,26 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
         }
     }
 
+    // Parse businessDetails if it comes as a JSON string
+    let parsedBusinessDetails = data.businessDetails;
+    if (typeof parsedBusinessDetails === "string") {
+        try {
+            parsedBusinessDetails = JSON.parse(parsedBusinessDetails);
+        } catch {
+            // Keep original if not JSON
+        }
+    }
+
     // Construct update data based on the provided fields
     const updateData: any = {
         ...(data.name && { name: data.name }),
         ...(data.phone && { phone: data.phone }),
-        ...(profileImageUrl && { profileImage: profileImageUrl }),
+        ...(data.website && { website: data.website }),
+        ...(userFiles.profileImage && { profileImage: userFiles.profileImage }),
+        ...(userFiles.businessDocument && { businessDocument: userFiles.businessDocument }),
+        ...(userFiles.governmentIssuedId && { governmentIssuedId: userFiles.governmentIssuedId }),
         ...(parsedAddress && { address: parsedAddress }),
+        ...(parsedBusinessDetails && { businessDetails: parsedBusinessDetails }),
     };
 
     const updatedUser = await authServices.updateProfile(req.user._id, updateData);
