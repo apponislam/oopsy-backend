@@ -1,4 +1,6 @@
 import httpStatus from "http-status";
+import path from "path";
+import fs from "fs";
 import ApiError from "../../../errors/ApiError";
 import { IListing } from "./listing.interface";
 import { ListingModel } from "./listing.model";
@@ -144,7 +146,12 @@ const getSingleListing = async (id: string) => {
     return listing;
 };
 
-const updateListing = async (id: string, hostId: string, payload: Partial<IListing>, files?: Express.Multer.File[]) => {
+const updateListing = async (
+    id: string,
+    hostId: string,
+    payload: any,
+    files?: Express.Multer.File[],
+) => {
     const existingListing = await ListingModel.findOne({ _id: id, isDeleted: false });
 
     if (!existingListing) {
@@ -155,10 +162,43 @@ const updateListing = async (id: string, hostId: string, payload: Partial<IListi
         throw new ApiError(httpStatus.FORBIDDEN, "You can only update your own listing");
     }
 
+    let currentPhotos = existingListing.photos || [];
+
+    // 1. Remove photos specified in removePhotos array
+    if (payload.removePhotos && Array.isArray(payload.removePhotos) && payload.removePhotos.length > 0) {
+        const removePhotos: string[] = payload.removePhotos;
+        currentPhotos = currentPhotos.filter((photo) => !removePhotos.includes(photo));
+
+        // Delete photo files from disk
+        for (const photoPath of removePhotos) {
+            try {
+                const fullPath = path.join(process.cwd(), photoPath.startsWith("/") ? photoPath.slice(1) : photoPath);
+                if (fs.existsSync(fullPath)) {
+                    fs.unlinkSync(fullPath);
+                }
+            } catch (err) {
+                // Ignore file unlink error if missing
+            }
+        }
+        delete payload.removePhotos;
+    }
+
+    // 2. Add new uploaded photo files
     if (files && Array.isArray(files) && files.length > 0) {
         const uploadedUrls = files.map((file) => file.filename);
-        payload.photos = [...(existingListing.photos || []), ...uploadedUrls].slice(0, 10);
+        currentPhotos = [...currentPhotos, ...uploadedUrls].slice(0, 10);
     }
+
+    // If photos was passed in payload explicitly, use that base + uploaded
+    if (payload.photos && Array.isArray(payload.photos)) {
+        currentPhotos = payload.photos;
+        if (files && Array.isArray(files) && files.length > 0) {
+            const uploadedUrls = files.map((file) => file.filename);
+            currentPhotos = [...currentPhotos, ...uploadedUrls].slice(0, 10);
+        }
+    }
+
+    payload.photos = currentPhotos;
 
     const updatedListing = await ListingModel.findByIdAndUpdate(
         id,
