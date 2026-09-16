@@ -21,6 +21,11 @@ export default {
         smtp_user: process.env.SMTP_USER,
         smtp_pass: process.env.SMTP_PASS,
     },
+    stripe: {
+        stripe_publishable_key: process.env.STRIPE_PUBLISHABLE_KEY,
+        stripe_secret_key: process.env.STRIPE_SECRET_KEY,
+        stripe_webhook_secret: process.env.STRIPE_WEBHOOK_SECRET,
+    },
     initialAdmin: {
         name: process.env.INITIAL_ADMIN_NAME,
         email: process.env.INITIAL_ADMIN_EMAIL,
