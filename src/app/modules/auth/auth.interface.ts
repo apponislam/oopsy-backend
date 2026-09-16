@@ -14,8 +14,21 @@ export interface User {
         city?: string;
         state?: string;
         zipCode?: string;
-        locality?: string;
+        country?: string;
+        location?: {
+            type: "Point";
+            coordinates: [number, number];
+        };
     };
+    businessDetails?: {
+        businessName?: string;
+        businessType?: string;
+        companyRegistrationNumber?: string;
+        vatNumber?: string;
+    };
+    website?: string;
+    businessDocument?: string;
+    governmentIssuedId?: string;
     isActive: boolean;
     isEmailVerified: boolean;
     isApproved?: boolean;

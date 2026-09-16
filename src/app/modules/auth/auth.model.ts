@@ -41,8 +41,29 @@ const UserSchema = new Schema<User>(
             city: String,
             state: String,
             zipCode: String,
-            locality: String,
+            country: String,
+            location: {
+                type: {
+                    type: String,
+                    enum: ["Point"],
+                    default: "Point",
+                },
+                coordinates: {
+                    type: [Number],
+                },
+            },
         },
+
+        businessDetails: {
+            businessName: String,
+            businessType: String,
+            companyRegistrationNumber: String,
+            vatNumber: String,
+        },
+
+        website: String,
+        businessDocument: String,
+        governmentIssuedId: String,
 
         isActive: {
             type: Boolean,
@@ -145,6 +166,7 @@ UserSchema.index({ isActive: 1 });
 UserSchema.index({ referredBy: 1 });
 
 UserSchema.index({ isEmailVerified: 1 });
+UserSchema.index({ "address.location": "2dsphere" });
 
 // Token lookup indexes (important for auth flows)
 UserSchema.index({ resetPasswordToken: 1 });

@@ -318,56 +318,6 @@ const deleteAccount = async (userId: string, password: string) => {
 
     try {
         const userObjectId = user._id;
-
-        // // 1. Seller cleanup
-        // // await SellerGroupModel.deleteMany({ sellerId: userObjectId }, { session });
-        // // await CampaignSellerModel.deleteMany({ sellerId: userObjectId }, { session });
-
-        // // 2. Admin cleanup (if Admin created groups/campaigns/invitations)
-        // if (user.role === "ADMIN") {
-        //     // Find groups created by this admin
-        //     const adminGroups = await GroupModel.find({ createdBy: userObjectId }).select("_id").session(session).lean();
-        //     const groupIds = adminGroups.map((g) => g._id);
-
-        //     // Find campaigns created by this admin or belonging to their groups
-        //     const adminCampaigns = await CampaignModel.find({
-        //         $or: [{ createdBy: userObjectId }, { groupId: { $in: groupIds } }],
-        //     })
-        //         .select("_id")
-        //         .session(session)
-        //         .lean();
-        //     const campaignIds = adminCampaigns.map((c) => c._id);
-
-        //     // Clean up invitations sent by admin or for admin groups
-        //     const { InvitationModel } = await import("../invitation/invitation.model");
-        //     await InvitationModel.deleteMany(
-        //         {
-        //             $or: [{ inviterId: userObjectId }, { groupId: { $in: groupIds } }],
-        //         },
-        //         { session },
-        //     );
-
-        //     // Clean up group & campaign seller mappings, and campaign products for admin's groups and campaigns
-        //     if (groupIds.length > 0) {
-        //         await SellerGroupModel.deleteMany({ groupId: { $in: groupIds } }, { session });
-        //     }
-        //     if (campaignIds.length > 0) {
-        //         await CampaignSellerModel.deleteMany({ campaignId: { $in: campaignIds } }, { session });
-        //         await CampaignProductModel.deleteMany({ campaignId: { $in: campaignIds } }, { session });
-        //     }
-
-        //     // Soft delete groups, campaigns, and campaign orders created by this admin
-        //     await GroupModel.updateMany({ createdBy: userObjectId }, { $set: { isDeleted: true } }, { session });
-        //     await CampaignModel.updateMany({ $or: [{ createdBy: userObjectId }, { groupId: { $in: groupIds } }] }, { $set: { isDeleted: true } }, { session });
-        //     if (campaignIds.length > 0) {
-        //         await OrderModel.deleteMany({ campaignId: { $in: campaignIds } }, { session });
-        //     }
-        // }
-
-        // // 3. Directly delete orders associated with this user as a seller
-        // await OrderModel.deleteMany({ memberId: userObjectId }, { session });
-
-        // Delete user document completely so they can re-register with the same email/login credentials in the future
         await UserModel.findByIdAndDelete(userObjectId, { session });
 
         await session.commitTransaction();
