@@ -29,6 +29,7 @@ export interface User {
     website?: string;
     businessDocument?: string;
     governmentIssuedId?: string;
+    balance?: number;
     isActive: boolean;
     isEmailVerified: boolean;
     isApproved?: boolean;

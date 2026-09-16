@@ -409,6 +409,9 @@ const setUserPassword = async (userId: string, newPassword: string) => {
 };
 
 const updateUserBySuperAdmin = async (userId: string, data: any) => {
+    if (data.balance !== undefined) {
+        delete data.balance;
+    }
     let plainPassword = "";
     // If password is being updated, hash it
     if (data.password) {

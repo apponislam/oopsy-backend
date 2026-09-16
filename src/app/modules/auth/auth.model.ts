@@ -65,6 +65,12 @@ const UserSchema = new Schema<User>(
         businessDocument: String,
         governmentIssuedId: String,
 
+        balance: {
+            type: Number,
+            default: 0,
+            min: 0,
+        },
+
         isActive: {
             type: Boolean,
             default: true,
