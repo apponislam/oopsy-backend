@@ -191,9 +191,12 @@ export const uploadProductImages = (req: Request, res: Response, next: NextFunct
     });
 };
 
-// Middleware for multiple customer service images upload
-export const uploadCustomerServiceImages = (req: Request, res: Response, next: NextFunction) => {
-    const uploadArray = upload.array("images", 5);
+// Middleware for listing photos upload (up to 10 photos)
+const listingPhotoDir = path.join(process.cwd(), "uploads", "listing-photos");
+if (!fs.existsSync(listingPhotoDir)) fs.mkdirSync(listingPhotoDir, { recursive: true });
+
+export const uploadListingPhotos = (req: Request, res: Response, next: NextFunction) => {
+    const uploadArray = upload.array("photos", 10);
 
     uploadArray(req, res, async (err) => {
         if (err) return next(err);
@@ -201,15 +204,15 @@ export const uploadCustomerServiceImages = (req: Request, res: Response, next: N
         if (req.files && Array.isArray(req.files) && req.files.length > 0) {
             try {
                 for (const file of req.files) {
-                    const newName = generateFileName("service", file.originalname);
-                    const outputPath = path.join(customerServiceImageDir, newName);
+                    const newName = generateFileName("listing", file.originalname);
+                    const outputPath = path.join(listingPhotoDir, newName);
 
                     await sharp(file.buffer)
-                        .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+                        .resize(1920, 1080, { fit: "inside", withoutEnlargement: true })
                         .webp({ quality: 80 })
                         .toFile(outputPath);
 
-                    file.filename = getRelativeImagePath("customer-service", newName);
+                    file.filename = getRelativeImagePath("listing-photos", newName);
                     file.path = outputPath;
                     file.mimetype = "image/webp";
                 }
@@ -221,3 +224,4 @@ export const uploadCustomerServiceImages = (req: Request, res: Response, next: N
         next();
     });
 };
+
