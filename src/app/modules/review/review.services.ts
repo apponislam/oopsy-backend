@@ -1,12 +1,24 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
+import path from "path";
+import fs from "fs";
 import ApiError from "../../../errors/ApiError";
 import { ListingModel } from "../listing/listing.model";
-import { IReview, IReviewStats } from "./review.interface";
+import { IRatingCategories, IReview, IReviewStats } from "./review.interface";
 import { ReviewModel } from "./review.model";
 
-const createReview = async (userId: string, payload: { listing: string; rating: number; comment: string }) => {
-    const { listing: listingId, rating, comment } = payload;
+const createReview = async (
+    userId: string,
+    payload: {
+        listing: string;
+        rating?: number;
+        categories: IRatingCategories;
+        comment: string;
+        photos?: string[];
+    },
+    files?: Express.Multer.File[],
+) => {
+    const { listing: listingId, categories, comment } = payload;
 
     // 1. Verify listing exists
     const listingExists = await ListingModel.findOne({ _id: listingId, isDeleted: false });
@@ -30,16 +42,30 @@ const createReview = async (userId: string, payload: { listing: string; rating: 
         throw new ApiError(httpStatus.CONFLICT, "You have already submitted a review for this listing");
     }
 
+    // 4. Compute overall rating if not explicitly supplied
+    let overallRating = payload.rating;
+    if (!overallRating && categories) {
+        const sum = Number(categories.cleanliness || 0) + Number(categories.safety || 0) + Number(categories.facilities || 0) + Number(categories.privacy || 0) + Number(categories.serviceQuality || 0);
+        overallRating = Math.round((sum / 5) * 10) / 10;
+    }
+
+    // 5. Process photo uploads if any
+    let photoUrls: string[] = payload.photos || [];
+    if (files && Array.isArray(files) && files.length > 0) {
+        const uploadedUrls = files.map((file) => file.filename);
+        photoUrls = [...photoUrls, ...uploadedUrls];
+    }
+
     const review = await ReviewModel.create({
         user: userId,
         listing: listingId,
-        rating,
+        rating: overallRating,
+        categories,
         comment,
+        photos: photoUrls,
     });
 
-    const populatedReview = await review.populate([
-        { path: "user", select: "name email profileImage role" },
-    ]);
+    const populatedReview = await review.populate([{ path: "user", select: "name email profileImage role" }]);
     return populatedReview;
 };
 
@@ -55,12 +81,7 @@ const getListingReviews = async (listingId: string, query: any) => {
     const skip = (Number(page) - 1) * Number(limit);
 
     const [reviews, total, stats] = await Promise.all([
-        ReviewModel.find(filter)
-            .populate("user", "name email profileImage")
-            .populate("reply.user", "name email profileImage role")
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(Number(limit)),
+        ReviewModel.find(filter).populate("user", "name email profileImage").populate("reply.user", "name email profileImage role").sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
         ReviewModel.countDocuments(filter),
         getListingReviewStats(listingId),
     ]);
@@ -119,13 +140,10 @@ const getUserReviews = async (userId: string, query: any) => {
 };
 
 const getSingleReview = async (id: string) => {
-    const review = await ReviewModel.findOne({ _id: id, isDeleted: false })
-        .populate("user", "name email profileImage")
-        .populate("reply.user", "name email profileImage role")
-        .populate({
-            path: "listing",
-            select: "name description photos location facilityType host",
-        });
+    const review = await ReviewModel.findOne({ _id: id, isDeleted: false }).populate("user", "name email profileImage").populate("reply.user", "name email profileImage role").populate({
+        path: "listing",
+        select: "name description photos location facilityType host",
+    });
 
     if (!review) {
         throw new ApiError(httpStatus.NOT_FOUND, "Review not found");
@@ -134,7 +152,7 @@ const getSingleReview = async (id: string) => {
     return review;
 };
 
-const updateReview = async (id: string, userId: string, payload: Partial<IReview>) => {
+const updateReview = async (id: string, userId: string, payload: Partial<IReview>, files?: Express.Multer.File[]) => {
     const existingReview = await ReviewModel.findOne({ _id: id, isDeleted: false });
 
     if (!existingReview) {
@@ -145,17 +163,54 @@ const updateReview = async (id: string, userId: string, payload: Partial<IReview
         throw new ApiError(httpStatus.FORBIDDEN, "You can only update your own review");
     }
 
-    const updatedData: Partial<IReview> = {};
-    if (payload.rating !== undefined) updatedData.rating = payload.rating;
+    const updatedData: any = {};
+    if (payload.categories) {
+        updatedData.categories = {
+            ...existingReview.categories,
+            ...payload.categories,
+        };
+        const cat = updatedData.categories;
+        updatedData.rating = Math.round(((Number(cat.cleanliness) + Number(cat.safety) + Number(cat.facilities) + Number(cat.privacy) + Number(cat.serviceQuality)) / 5) * 10) / 10;
+    } else if (payload.rating !== undefined) {
+        updatedData.rating = payload.rating;
+    }
+
     if (payload.comment !== undefined) updatedData.comment = payload.comment;
 
-    const updatedReview = await ReviewModel.findByIdAndUpdate(
-        id,
-        { $set: updatedData },
-        { returnDocument: "after", runValidators: true },
-    )
-        .populate("user", "name email profileImage")
-        .populate("reply.user", "name email profileImage role");
+    // Photos update handling
+    let currentPhotos = existingReview.photos || [];
+
+    const removeTargets: string[] = [
+        ...(Array.isArray((payload as any).removeImages) ? (payload as any).removeImages : []),
+        ...(Array.isArray((payload as any).removePhotos) ? (payload as any).removePhotos : []),
+    ];
+
+    if (removeTargets.length > 0) {
+        currentPhotos = currentPhotos.filter((photo: string) => !removeTargets.includes(photo));
+
+        // Delete photo files from disk
+        for (const photoPath of removeTargets) {
+            try {
+                const fullPath = path.join(process.cwd(), photoPath.startsWith("/") ? photoPath.slice(1) : photoPath);
+                if (fs.existsSync(fullPath)) {
+                    fs.unlinkSync(fullPath);
+                }
+            } catch (err) {
+                // Ignore file unlink error if missing
+            }
+        }
+    }
+
+    if (payload.photos && Array.isArray(payload.photos)) {
+        currentPhotos = payload.photos;
+    }
+    if (files && Array.isArray(files) && files.length > 0) {
+        const uploadedUrls = files.map((file) => file.filename);
+        currentPhotos = [...currentPhotos, ...uploadedUrls].slice(0, 5);
+    }
+    updatedData.photos = currentPhotos;
+
+    const updatedReview = await ReviewModel.findByIdAndUpdate(id, { $set: updatedData }, { returnDocument: "after", runValidators: true }).populate("user", "name email profileImage").populate("reply.user", "name email profileImage role");
 
     return updatedReview;
 };
@@ -169,6 +224,20 @@ const deleteReview = async (id: string, userId: string, userRole?: string) => {
 
     if (existingReview.user.toString() !== userId && userRole !== "SUPER_ADMIN") {
         throw new ApiError(httpStatus.FORBIDDEN, "You can only delete your own review");
+    }
+
+    // Delete review photo files if any
+    if (existingReview.photos && existingReview.photos.length > 0) {
+        for (const photoPath of existingReview.photos) {
+            try {
+                const fullPath = path.join(process.cwd(), photoPath.startsWith("/") ? photoPath.slice(1) : photoPath);
+                if (fs.existsSync(fullPath)) {
+                    fs.unlinkSync(fullPath);
+                }
+            } catch (err) {
+                // Ignore photo delete error if missing
+            }
+        }
     }
 
     existingReview.isDeleted = true;
@@ -188,12 +257,10 @@ const addReply = async (reviewId: string, userId: string, comment: string, userR
         throw new ApiError(httpStatus.NOT_FOUND, "Associated listing not found");
     }
 
-    // Only host of the listing or SUPER_ADMIN can reply to reviews
     if (listing.host.toString() !== userId && userRole !== "SUPER_ADMIN") {
         throw new ApiError(httpStatus.FORBIDDEN, "Only the host of this listing can reply to this review");
     }
 
-    // Check if reply already exists
     if (review.reply) {
         throw new ApiError(httpStatus.CONFLICT, "A reply has already been posted for this review");
     }
@@ -207,9 +274,7 @@ const addReply = async (reviewId: string, userId: string, comment: string, userR
 
     await review.save();
 
-    const updatedReview = await ReviewModel.findById(reviewId)
-        .populate("user", "name email profileImage")
-        .populate("reply.user", "name email profileImage role");
+    const updatedReview = await ReviewModel.findById(reviewId).populate("user", "name email profileImage").populate("reply.user", "name email profileImage role");
 
     return updatedReview;
 };
@@ -233,9 +298,7 @@ const updateReply = async (reviewId: string, userId: string, comment: string, us
 
     await review.save();
 
-    const updatedReview = await ReviewModel.findById(reviewId)
-        .populate("user", "name email profileImage")
-        .populate("reply.user", "name email profileImage role");
+    const updatedReview = await ReviewModel.findById(reviewId).populate("user", "name email profileImage").populate("reply.user", "name email profileImage role");
 
     return updatedReview;
 };
@@ -273,6 +336,11 @@ const getListingReviewStats = async (listingId: string): Promise<IReviewStats> =
                 _id: "$listing",
                 averageRating: { $avg: "$rating" },
                 totalReviews: { $sum: 1 },
+                avgCleanliness: { $avg: "$categories.cleanliness" },
+                avgSafety: { $avg: "$categories.safety" },
+                avgFacilities: { $avg: "$categories.facilities" },
+                avgPrivacy: { $avg: "$categories.privacy" },
+                avgServiceQuality: { $avg: "$categories.serviceQuality" },
                 count1: { $sum: { $cond: [{ $eq: ["$rating", 1] }, 1, 0] } },
                 count2: { $sum: { $cond: [{ $eq: ["$rating", 2] }, 1, 0] } },
                 count3: { $sum: { $cond: [{ $eq: ["$rating", 3] }, 1, 0] } },
@@ -286,14 +354,30 @@ const getListingReviewStats = async (listingId: string): Promise<IReviewStats> =
         return {
             averageRating: 0,
             totalReviews: 0,
+            categoryAverages: {
+                cleanliness: 0,
+                safety: 0,
+                facilities: 0,
+                privacy: 0,
+                serviceQuality: 0,
+            },
             ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
         };
     }
 
     const stat = statsResult[0];
+    const roundOneDecimal = (num: number) => Math.round((num || 0) * 10) / 10;
+
     return {
-        averageRating: Math.round(stat.averageRating * 10) / 10,
+        averageRating: roundOneDecimal(stat.averageRating),
         totalReviews: stat.totalReviews,
+        categoryAverages: {
+            cleanliness: roundOneDecimal(stat.avgCleanliness),
+            safety: roundOneDecimal(stat.avgSafety),
+            facilities: roundOneDecimal(stat.avgFacilities),
+            privacy: roundOneDecimal(stat.avgPrivacy),
+            serviceQuality: roundOneDecimal(stat.avgServiceQuality),
+        },
         ratingDistribution: {
             1: stat.count1,
             2: stat.count2,

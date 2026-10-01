@@ -225,3 +225,37 @@ export const uploadListingPhotos = (req: Request, res: Response, next: NextFunct
     });
 };
 
+// Middleware for review photos upload (up to 5 photos)
+const reviewPhotoDir = path.join(process.cwd(), "uploads", "review-photos");
+if (!fs.existsSync(reviewPhotoDir)) fs.mkdirSync(reviewPhotoDir, { recursive: true });
+
+export const uploadReviewPhotos = (req: Request, res: Response, next: NextFunction) => {
+    const uploadArray = upload.array("photos", 5);
+
+    uploadArray(req, res, async (err) => {
+        if (err) return next(err);
+
+        if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+            try {
+                for (const file of req.files) {
+                    const newName = generateFileName("review", file.originalname);
+                    const outputPath = path.join(reviewPhotoDir, newName);
+
+                    await sharp(file.buffer)
+                        .resize(1920, 1080, { fit: "inside", withoutEnlargement: true })
+                        .webp({ quality: 80 })
+                        .toFile(outputPath);
+
+                    file.filename = getRelativeImagePath("review-photos", newName);
+                    file.path = outputPath;
+                    file.mimetype = "image/webp";
+                }
+            } catch (error) {
+                return next(error);
+            }
+        }
+
+        next();
+    });
+};
+

@@ -1,5 +1,13 @@
 import { Types } from "mongoose";
 
+export interface IRatingCategories {
+    cleanliness: number;
+    safety: number;
+    facilities: number;
+    privacy: number;
+    serviceQuality: number;
+}
+
 export interface IReviewReply {
     user: Types.ObjectId;
     comment: string;
@@ -11,17 +19,28 @@ export interface IReview {
     _id?: Types.ObjectId;
     user: Types.ObjectId;
     listing: Types.ObjectId;
-    rating: number;
+    rating: number; // Overall rating (1-5), automatically computed from category average if omitted
+    categories: IRatingCategories;
     comment: string;
+    photos?: string[];
     reply?: IReviewReply;
     isDeleted?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 }
 
+export interface ICategoryAverages {
+    cleanliness: number;
+    safety: number;
+    facilities: number;
+    privacy: number;
+    serviceQuality: number;
+}
+
 export interface IReviewStats {
     averageRating: number;
     totalReviews: number;
+    categoryAverages: ICategoryAverages;
     ratingDistribution: {
         1: number;
         2: number;

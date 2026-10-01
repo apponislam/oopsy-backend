@@ -1,5 +1,6 @@
 import { Router } from "express";
 import auth from "../../middlewares/auth";
+import { uploadReviewPhotos } from "../../middlewares/multer";
 import { reviewControllers } from "./review.controllers";
 
 const router = Router();
@@ -10,9 +11,9 @@ router.get("/listing/:listingId/stats", reviewControllers.getListingReviewStats)
 router.get("/:id", reviewControllers.getSingleReview);
 
 // Authenticated user routes for reviews
-router.post("/", auth, reviewControllers.createReview);
+router.post("/", auth, uploadReviewPhotos, reviewControllers.createReview);
 router.get("/my-reviews", auth, reviewControllers.getUserReviews);
-router.patch("/:id", auth, reviewControllers.updateReview);
+router.patch("/:id", auth, uploadReviewPhotos, reviewControllers.updateReview);
 router.delete("/:id", auth, reviewControllers.deleteReview);
 
 // Authenticated host / admin routes for review replies

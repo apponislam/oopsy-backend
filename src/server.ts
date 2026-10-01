@@ -4,9 +4,7 @@ import mongoose from "mongoose";
 import http from "http";
 import config from "./app/config";
 import { seedSuperAdmin } from "./app/modules/auth/auth.seed";
-import { seedTiers } from "./app/modules/tier/tier.seed";
 import { initSocket } from "./app/socket/socket";
-import { startCampaignExpiryJob } from "./app/modules/campaign/campaign.jobs";
 import dns from "dns";
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
@@ -21,8 +19,6 @@ async function main() {
         initSocket(server);
 
         seedSuperAdmin();
-        seedTiers();
-        startCampaignExpiryJob();
 
         server.listen(Number(config.port), config.ip, () => {
             console.log(`✅ App listening on port ${config.port} on ${config.ip}`);

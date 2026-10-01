@@ -5,8 +5,19 @@ import sendResponse from "../../../utils/sendResponse";
 import { reviewServices } from "./review.services";
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
+    let bodyData = req.body;
+    if (req.body.data && typeof req.body.data === "string") {
+        try {
+            bodyData = JSON.parse(req.body.data);
+        } catch (e) {
+            // keep req.body as is if parse fails
+        }
+    }
+
     const userId = (req as any).user._id;
-    const result = await reviewServices.createReview(userId, req.body);
+    const files = req.files as Express.Multer.File[];
+
+    const result = await reviewServices.createReview(userId, bodyData, files);
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
@@ -59,7 +70,17 @@ const updateReview = catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const userId = (req as any).user._id;
 
-    const result = await reviewServices.updateReview(id, userId, req.body);
+    let bodyData = req.body;
+    if (req.body.data && typeof req.body.data === "string") {
+        try {
+            bodyData = JSON.parse(req.body.data);
+        } catch (e) {
+            // keep req.body as is if parse fails
+        }
+    }
+
+    const files = req.files as Express.Multer.File[];
+    const result = await reviewServices.updateReview(id, userId, bodyData, files);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
