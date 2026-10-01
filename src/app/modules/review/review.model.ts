@@ -1,6 +1,26 @@
 import mongoose, { Schema } from "mongoose";
 import { IReview } from "./review.interface";
 
+const ReviewReplySchema = new Schema(
+    {
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            required: [true, "Replier user ID is required"],
+        },
+        comment: {
+            type: String,
+            required: [true, "Reply comment is required"],
+            trim: true,
+            maxLength: [1000, "Reply comment cannot exceed 1000 characters"],
+        },
+    },
+    {
+        timestamps: true,
+        _id: false,
+    },
+);
+
 const ReviewSchema = new Schema<IReview>(
     {
         user: {
@@ -24,6 +44,10 @@ const ReviewSchema = new Schema<IReview>(
             required: [true, "Comment is required"],
             trim: true,
             maxLength: [1000, "Comment cannot exceed 1000 characters"],
+        },
+        reply: {
+            type: ReviewReplySchema,
+            default: undefined,
         },
         isDeleted: {
             type: Boolean,

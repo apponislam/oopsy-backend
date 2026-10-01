@@ -37,7 +37,9 @@ const createReview = async (userId: string, payload: { listing: string; rating: 
         comment,
     });
 
-    const populatedReview = await review.populate("user", "name email profileImage role");
+    const populatedReview = await review.populate([
+        { path: "user", select: "name email profileImage role" },
+    ]);
     return populatedReview;
 };
 
@@ -55,6 +57,7 @@ const getListingReviews = async (listingId: string, query: any) => {
     const [reviews, total, stats] = await Promise.all([
         ReviewModel.find(filter)
             .populate("user", "name email profileImage")
+            .populate("reply.user", "name email profileImage role")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(Number(limit)),
@@ -92,6 +95,7 @@ const getUserReviews = async (userId: string, query: any) => {
                 select: "name description photos location facilityType host",
                 populate: { path: "facilityType", select: "name slug image" },
             })
+            .populate("reply.user", "name email profileImage role")
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(Number(limit)),
@@ -117,6 +121,7 @@ const getUserReviews = async (userId: string, query: any) => {
 const getSingleReview = async (id: string) => {
     const review = await ReviewModel.findOne({ _id: id, isDeleted: false })
         .populate("user", "name email profileImage")
+        .populate("reply.user", "name email profileImage role")
         .populate({
             path: "listing",
             select: "name description photos location facilityType host",
@@ -148,7 +153,9 @@ const updateReview = async (id: string, userId: string, payload: Partial<IReview
         id,
         { $set: updatedData },
         { returnDocument: "after", runValidators: true },
-    ).populate("user", "name email profileImage");
+    )
+        .populate("user", "name email profileImage")
+        .populate("reply.user", "name email profileImage role");
 
     return updatedReview;
 };
@@ -168,6 +175,89 @@ const deleteReview = async (id: string, userId: string, userRole?: string) => {
     await existingReview.save();
 
     return { message: "Review deleted successfully" };
+};
+
+const addReply = async (reviewId: string, userId: string, comment: string, userRole?: string) => {
+    const review = await ReviewModel.findOne({ _id: reviewId, isDeleted: false });
+    if (!review) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Review not found");
+    }
+
+    const listing = await ListingModel.findOne({ _id: review.listing, isDeleted: false });
+    if (!listing) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Associated listing not found");
+    }
+
+    // Only host of the listing or SUPER_ADMIN can reply to reviews
+    if (listing.host.toString() !== userId && userRole !== "SUPER_ADMIN") {
+        throw new ApiError(httpStatus.FORBIDDEN, "Only the host of this listing can reply to this review");
+    }
+
+    // Check if reply already exists
+    if (review.reply) {
+        throw new ApiError(httpStatus.CONFLICT, "A reply has already been posted for this review");
+    }
+
+    review.reply = {
+        user: new mongoose.Types.ObjectId(userId),
+        comment,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
+
+    await review.save();
+
+    const updatedReview = await ReviewModel.findById(reviewId)
+        .populate("user", "name email profileImage")
+        .populate("reply.user", "name email profileImage role");
+
+    return updatedReview;
+};
+
+const updateReply = async (reviewId: string, userId: string, comment: string, userRole?: string) => {
+    const review = await ReviewModel.findOne({ _id: reviewId, isDeleted: false });
+    if (!review) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Review not found");
+    }
+
+    if (!review.reply) {
+        throw new ApiError(httpStatus.NOT_FOUND, "No reply exists for this review");
+    }
+
+    if (review.reply.user.toString() !== userId && userRole !== "SUPER_ADMIN") {
+        throw new ApiError(httpStatus.FORBIDDEN, "You can only edit your own reply");
+    }
+
+    review.reply.comment = comment;
+    review.reply.updatedAt = new Date();
+
+    await review.save();
+
+    const updatedReview = await ReviewModel.findById(reviewId)
+        .populate("user", "name email profileImage")
+        .populate("reply.user", "name email profileImage role");
+
+    return updatedReview;
+};
+
+const deleteReply = async (reviewId: string, userId: string, userRole?: string) => {
+    const review = await ReviewModel.findOne({ _id: reviewId, isDeleted: false });
+    if (!review) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Review not found");
+    }
+
+    if (!review.reply) {
+        throw new ApiError(httpStatus.NOT_FOUND, "No reply exists for this review");
+    }
+
+    if (review.reply.user.toString() !== userId && userRole !== "SUPER_ADMIN") {
+        throw new ApiError(httpStatus.FORBIDDEN, "You can only delete your own reply");
+    }
+
+    review.reply = undefined;
+    await review.save();
+
+    return { message: "Reply deleted successfully" };
 };
 
 const getListingReviewStats = async (listingId: string): Promise<IReviewStats> => {
@@ -221,5 +311,8 @@ export const reviewServices = {
     getSingleReview,
     updateReview,
     deleteReview,
+    addReply,
+    updateReply,
+    deleteReply,
     getListingReviewStats,
 };

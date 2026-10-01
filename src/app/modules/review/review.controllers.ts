@@ -84,6 +84,53 @@ const deleteReview = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const addReply = catchAsync(async (req: Request, res: Response) => {
+    const reviewId = req.params.id as string;
+    const userId = (req as any).user._id;
+    const userRole = (req as any).user?.role;
+    const { comment } = req.body;
+
+    const result = await reviewServices.addReply(reviewId, userId, comment, userRole);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Reply added successfully",
+        data: result,
+    });
+});
+
+const updateReply = catchAsync(async (req: Request, res: Response) => {
+    const reviewId = req.params.id as string;
+    const userId = (req as any).user._id;
+    const userRole = (req as any).user?.role;
+    const { comment } = req.body;
+
+    const result = await reviewServices.updateReply(reviewId, userId, comment, userRole);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Reply updated successfully",
+        data: result,
+    });
+});
+
+const deleteReply = catchAsync(async (req: Request, res: Response) => {
+    const reviewId = req.params.id as string;
+    const userId = (req as any).user._id;
+    const userRole = (req as any).user?.role;
+
+    const result = await reviewServices.deleteReply(reviewId, userId, userRole);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: result.message,
+        data: null,
+    });
+});
+
 const getListingReviewStats = catchAsync(async (req: Request, res: Response) => {
     const listingId = req.params.listingId as string;
     const result = await reviewServices.getListingReviewStats(listingId);
@@ -103,5 +150,8 @@ export const reviewControllers = {
     getSingleReview,
     updateReview,
     deleteReview,
+    addReply,
+    updateReply,
+    deleteReply,
     getListingReviewStats,
 };

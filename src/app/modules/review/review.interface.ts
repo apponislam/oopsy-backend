@@ -1,11 +1,19 @@
 import { Types } from "mongoose";
 
+export interface IReviewReply {
+    user: Types.ObjectId;
+    comment: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export interface IReview {
     _id?: Types.ObjectId;
     user: Types.ObjectId;
     listing: Types.ObjectId;
     rating: number;
     comment: string;
+    reply?: IReviewReply;
     isDeleted?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
