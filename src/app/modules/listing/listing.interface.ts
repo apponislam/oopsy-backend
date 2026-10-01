@@ -15,7 +15,7 @@ export interface IListingLocation {
 export interface IListing {
     _id?: Types.ObjectId;
     host: Types.ObjectId;
-    facilityType: Types.ObjectId; // References Category model
+    facilityType: Types.ObjectId;
     name: string;
     description: string;
     capacity: number;

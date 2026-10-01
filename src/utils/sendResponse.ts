@@ -13,6 +13,7 @@ type TResponse<T> = {
         hasNext?: boolean;
         hasPrev?: boolean;
     };
+    stats?: any;
 };
 
 const sendResponse = <T>(res: Response, data: TResponse<T>) => {
@@ -21,6 +22,7 @@ const sendResponse = <T>(res: Response, data: TResponse<T>) => {
         message: data.message,
         data: data.data,
         meta: data.meta,
+        ...(data.stats !== undefined && { stats: data.stats }),
     });
 };
 
