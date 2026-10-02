@@ -5,6 +5,7 @@ import { categoryRoutes } from "../modules/category/category.routes";
 import { settingRoutes } from "../modules/setting/setting.routes";
 import { listingRoutes } from "../modules/listing/listing.routes";
 import { reviewRoutes } from "../modules/review/review.routes";
+import { notificationRoutes } from "../modules/notification/notification.routes";
 
 const router = express.Router();
 
@@ -32,6 +33,10 @@ const moduleRoutes = [
     {
         path: "/reviews",
         route: reviewRoutes,
+    },
+    {
+        path: "/notifications",
+        route: notificationRoutes,
     },
 ];
 
