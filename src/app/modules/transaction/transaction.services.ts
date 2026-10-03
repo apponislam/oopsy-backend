@@ -8,10 +8,13 @@ const createTransaction = async (payload: Partial<ITransaction>): Promise<ITrans
     return newTransaction;
 };
 
-// Get transaction history for a user with filters & search
+// Get transaction history for a user (as payer or receiver) with filters & search
 const getTransactionHistory = async (userId: string, filters: ITransactionFilterOptions) => {
     const { searchTerm, type, page = 1, limit = 10 } = filters;
-    const query: any = { user: new Types.ObjectId(userId) };
+    const userObjId = new Types.ObjectId(userId);
+    const query: any = {
+        $or: [{ payer: userObjId }, { receiver: userObjId }, { user: userObjId }],
+    };
 
     if (type && type !== 'ALL') {
         if (type === 'BOOKINGS') query.type = 'BOOKING';
@@ -20,9 +23,13 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
     }
 
     if (searchTerm) {
-        query.$or = [
-            { title: { $regex: searchTerm, $options: 'i' } },
-            { transactionId: { $regex: searchTerm, $options: 'i' } },
+        query.$and = [
+            {
+                $or: [
+                    { title: { $regex: searchTerm, $options: 'i' } },
+                    { transactionId: { $regex: searchTerm, $options: 'i' } },
+                ],
+            },
         ];
     }
 
@@ -34,30 +41,31 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNumber)
+        .populate('payer', 'name email phone profileImage')
+        .populate('receiver', 'name email phone profileImage')
         .populate('listing', 'title price images');
 
     const total = await Transaction.countDocuments(query);
     const totalPages = Math.ceil(total / limitNumber);
 
-    // Calculate aggregated transaction metrics for user
+    // Calculate aggregated transaction metrics for user (Received, Paid, Net)
     const metricsAggregate = await Transaction.aggregate([
-        { $match: { user: new Types.ObjectId(userId) } },
+        {
+            $match: {
+                $or: [{ payer: userObjId }, { receiver: userObjId }, { user: userObjId }],
+            },
+        },
         {
             $group: {
                 _id: null,
                 totalPaid: {
                     $sum: {
-                        $cond: [{ $eq: ['$type', 'BOOKING'] }, '$amount', 0],
+                        $cond: [{ $eq: ['$payer', userObjId] }, '$amount', 0],
                     },
                 },
-                totalRefunded: {
+                totalReceived: {
                     $sum: {
-                        $cond: [{ $eq: ['$type', 'REFUND'] }, '$amount', 0],
-                    },
-                },
-                totalPayouts: {
-                    $sum: {
-                        $cond: [{ $eq: ['$type', 'PAYOUT'] }, '$amount', 0],
+                        $cond: [{ $eq: ['$receiver', userObjId] }, '$amount', 0],
                     },
                 },
             },
@@ -65,15 +73,13 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
     ]);
 
     const totalPaid = metricsAggregate[0]?.totalPaid || 0;
-    const totalRefunded = metricsAggregate[0]?.totalRefunded || 0;
-    const totalPayouts = metricsAggregate[0]?.totalPayouts || 0;
+    const totalReceived = metricsAggregate[0]?.totalReceived || 0;
 
     return {
         summary: {
             totalPaid,
-            totalRefunded,
-            totalPayouts,
-            net: totalPaid - totalRefunded - totalPayouts,
+            totalReceived,
+            net: totalReceived - totalPaid,
         },
         meta: {
             page: pageNumber,
@@ -113,7 +119,8 @@ const getAllTransactionsForAdmin = async (filters: ITransactionFilterOptions) =>
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNumber)
-        .populate('user', 'name email phone profileImage')
+        .populate('payer', 'name email phone profileImage role')
+        .populate('receiver', 'name email phone profileImage role')
         .populate('listing', 'title price images');
 
     const total = await Transaction.countDocuments(query);
@@ -170,11 +177,13 @@ const getAllTransactionsForAdmin = async (filters: ITransactionFilterOptions) =>
 const getSingleTransaction = async (id: string, userId?: string) => {
     const query: any = { _id: id };
     if (userId) {
-        query.user = new Types.ObjectId(userId);
+        const userObjId = new Types.ObjectId(userId);
+        query.$or = [{ payer: userObjId }, { receiver: userObjId }, { user: userObjId }];
     }
 
     const transaction = await Transaction.findOne(query)
-        .populate('user', 'name email phone profileImage')
+        .populate('payer', 'name email phone profileImage')
+        .populate('receiver', 'name email phone profileImage')
         .populate('listing', 'title price images location');
 
     return transaction;
@@ -183,7 +192,8 @@ const getSingleTransaction = async (id: string, userId?: string) => {
 // SUPER_ADMIN: Get single transaction details by ID (unrestricted)
 const getSingleTransactionForAdmin = async (id: string) => {
     const transaction = await Transaction.findById(id)
-        .populate('user', 'name email phone profileImage role')
+        .populate('payer', 'name email phone profileImage role')
+        .populate('receiver', 'name email phone profileImage role')
         .populate('listing', 'title price images location');
 
     return transaction;

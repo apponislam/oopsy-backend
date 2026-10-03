@@ -8,10 +8,18 @@ const transactionSchema = new Schema<ITransaction>(
             required: true,
             unique: true,
         },
-        user: {
+        payer: {
             type: Schema.Types.ObjectId,
             ref: 'User',
             required: true,
+        },
+        receiver: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+        },
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
         },
         listing: {
             type: Schema.Types.ObjectId,
@@ -77,6 +85,10 @@ transactionSchema.pre('validate', async function () {
             }
         }
         this.transactionId = candidateId;
+    }
+
+    if (this.payer && !this.user) {
+        this.user = this.payer;
     }
 });
 

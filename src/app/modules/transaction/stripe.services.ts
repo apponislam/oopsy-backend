@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import config from '../../config';
 import { Transaction } from './transaction.model';
+import { UserModel } from '../auth/auth.model';
 import { Types } from 'mongoose';
 
 const stripe = new Stripe(config.stripe.stripe_secret_key || '', {
@@ -50,6 +51,9 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
         reason: (payload.reason as any) || 'requested_by_customer',
     });
 
+    const refundAmount = refund.amount / 100;
+    const previousStatus = transaction.status;
+
     transaction.status = 'REFUNDED';
     transaction.stripeRefundId = refund.id;
     if (payload.reason) {
@@ -57,13 +61,22 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
     }
     await transaction.save();
 
+    // Deduct refunded amount from receiver's (host's) balance if previously paid
+    if (previousStatus === 'PAID' && transaction.receiver) {
+        await UserModel.findByIdAndUpdate(transaction.receiver, {
+            $inc: { balance: -refundAmount },
+        });
+    }
+
     // Create a corresponding Refund transaction record
     const refundTransaction = await Transaction.create({
-        user: transaction.user,
+        payer: transaction.receiver || transaction.payer, // Receiver pays back
+        receiver: transaction.payer,                      // Customer gets money back
+        user: transaction.payer,
         listing: transaction.listing,
         title: `Refund for ${transaction.title}`,
         type: 'REFUND',
-        amount: refund.amount / 100,
+        amount: refundAmount,
         currency: transaction.currency,
         status: 'REFUNDED',
         stripePaymentIntentId: transaction.stripePaymentIntentId,

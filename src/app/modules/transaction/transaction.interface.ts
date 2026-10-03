@@ -6,7 +6,9 @@ export type TransactionStatus = 'PAID' | 'PENDING' | 'REFUNDED' | 'FAILED';
 export interface ITransaction {
     _id?: Types.ObjectId;
     transactionId: string;
-    user: Types.ObjectId;
+    payer: Types.ObjectId;      // User who paid / initiated payment (Customer / Client)
+    receiver?: Types.ObjectId;   // User who received the payment (Host / Provider)
+    user?: Types.ObjectId;       // Legacy reference alias
     listing?: Types.ObjectId;
     title: string;
     type: TransactionType;
