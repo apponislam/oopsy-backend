@@ -7,7 +7,7 @@ import { StripeService } from "./stripe.services";
 import { StripeWebhookService } from "./stripe.webhook";
 
 const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
-    const userId = (req as any).user?._id || req.body.user;
+    const userId = (req as any).user._id;
     const { amount, title, listingId } = req.body;
 
     const result = await StripeService.createPaymentIntent({
@@ -55,7 +55,7 @@ const handleStripeWebhook = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createTransaction = catchAsync(async (req: Request, res: Response) => {
-    const userId = (req as any).user?._id || req.body.user;
+    const userId = (req as any).user._id;
     const result = await TransactionService.createTransaction({
         ...req.body,
         user: userId,
@@ -70,7 +70,7 @@ const createTransaction = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getTransactionHistory = catchAsync(async (req: Request, res: Response) => {
-    const userId = (req as any).user?._id || (req.query.userId as string);
+    const userId = (req as any).user._id;
     const { searchTerm, type, page, limit } = req.query;
 
     const result = await TransactionService.getTransactionHistory(userId, {
@@ -90,10 +90,62 @@ const getTransactionHistory = catchAsync(async (req: Request, res: Response) => 
     });
 });
 
+const getSingleTransaction = catchAsync(async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const userId = (req as any).user._id;
+
+    const result = await TransactionService.getSingleTransaction(id, userId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Transaction details fetched successfully",
+        data: result,
+    });
+});
+
+// SUPER_ADMIN: Get all platform transactions
+const getAllTransactionsForAdmin = catchAsync(async (req: Request, res: Response) => {
+    const { searchTerm, type, page, limit } = req.query;
+
+    const result = await TransactionService.getAllTransactionsForAdmin({
+        searchTerm: searchTerm as string,
+        type: type as any,
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 10,
+    });
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Admin all transactions fetched successfully",
+        stats: result.summary,
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
+// SUPER_ADMIN: Get single transaction details
+const getSingleTransactionForAdmin = catchAsync(async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+
+    const result = await TransactionService.getSingleTransactionForAdmin(id);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Admin transaction details fetched successfully",
+        data: result,
+    });
+});
+
 export const TransactionController = {
     createPaymentIntent,
     processRefund,
     handleStripeWebhook,
     createTransaction,
     getTransactionHistory,
+    getSingleTransaction,
+    getAllTransactionsForAdmin,
+    getSingleTransactionForAdmin,
 };
