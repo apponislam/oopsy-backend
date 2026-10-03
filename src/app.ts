@@ -17,6 +17,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Stripe Webhook requires raw body parsing for signature validation
+app.use(
+    '/api/v1/transaction/webhook',
+    express.raw({ type: 'application/json' })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
