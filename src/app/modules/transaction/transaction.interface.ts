@@ -1,8 +1,7 @@
 import { Types } from 'mongoose';
 
-export type TransactionType = 'Booking' | 'Payout' | 'Refund' | 'Platform Fee';
-export type TransactionCategory = 'Credit' | 'Debit';
-export type TransactionStatus = 'Paid' | 'Pending' | 'Auto' | 'Refunded' | 'Transferred' | 'Failed';
+export type TransactionType = 'BOOKING' | 'PAYOUT' | 'REFUND' | 'PLATFORM_FEE';
+export type TransactionStatus = 'PAID' | 'PENDING' | 'REFUNDED' | 'FAILED';
 
 export interface ITransaction {
     _id?: Types.ObjectId;
@@ -11,12 +10,11 @@ export interface ITransaction {
     listing?: Types.ObjectId;
     title: string;
     type: TransactionType;
-    category: TransactionCategory;
     amount: number;
     currency: string;
     status: TransactionStatus;
-    paymentMethod: 'Stripe';
     stripePaymentIntentId?: string;
+    stripeRefundId?: string;
     remarks?: string;
     createdAt?: Date;
     updatedAt?: Date;
@@ -24,7 +22,7 @@ export interface ITransaction {
 
 export interface ITransactionFilterOptions {
     searchTerm?: string;
-    type?: 'All' | 'Bookings' | 'Payouts' | 'Refunds';
+    type?: 'ALL' | 'BOOKINGS' | 'PAYOUTS' | 'REFUNDS';
     page?: number;
     limit?: number;
 }

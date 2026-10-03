@@ -1,87 +1,98 @@
-import { Request, Response, NextFunction } from 'express';
-import { TransactionService } from './transaction.services';
+import { Request, Response } from "express";
+import httpStatus from "http-status";
+import catchAsync from "../../../utils/catchAsync";
+import sendResponse from "../../../utils/sendResponse";
+import { TransactionService } from "./transaction.services";
+import { StripeService } from "./stripe.services";
+import { StripeWebhookService } from "./stripe.webhook";
 
-const createPaymentIntent = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const userId = (req as any).user?._id || req.body.user;
-        const { amount, title, listingId } = req.body;
+const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user?._id || req.body.user;
+    const { amount, title, listingId } = req.body;
 
-        const result = await TransactionService.createPaymentIntent({
-            amount,
-            user: userId,
-            title,
-            listingId,
-        });
+    const result = await StripeService.createPaymentIntent({
+        amount,
+        user: userId,
+        title,
+        listingId,
+    });
 
-        res.status(200).json({
-            success: true,
-            message: 'Payment intent created successfully',
-            data: result,
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Payment intent created successfully",
+        data: result,
+    });
+});
 
-const handleStripeWebhook = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const signature = req.headers['stripe-signature'] as string;
-        const result = await TransactionService.handleStripeWebhook(signature, req.body);
+const processRefund = catchAsync(async (req: Request, res: Response) => {
+    const { transactionId, amount, reason } = req.body;
 
-        res.status(200).json({
-            success: true,
-            data: result,
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+    const result = await StripeService.processRefund({
+        transactionId,
+        amount,
+        reason,
+    });
 
-const createTransaction = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const userId = (req as any).user?._id || req.body.user;
-        const result = await TransactionService.createTransaction({
-            ...req.body,
-            user: userId,
-            paymentMethod: 'Stripe',
-        });
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Refund processed successfully",
+        data: result,
+    });
+});
 
-        res.status(201).json({
-            success: true,
-            message: 'Transaction created successfully',
-            data: result,
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+const handleStripeWebhook = catchAsync(async (req: Request, res: Response) => {
+    const signature = req.headers["stripe-signature"] as string;
+    const result = await StripeWebhookService.handleStripeWebhook(signature, req.body);
 
-const getTransactionHistory = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const userId = (req as any).user?._id || (req.query.userId as string);
-        const { searchTerm, type, page, limit } = req.query;
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Webhook processed successfully",
+        data: result,
+    });
+});
 
-        const result = await TransactionService.getTransactionHistory(userId, {
-            searchTerm: searchTerm as string,
-            type: type as any,
-            page: page ? Number(page) : 1,
-            limit: limit ? Number(limit) : 10,
-        });
+const createTransaction = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user?._id || req.body.user;
+    const result = await TransactionService.createTransaction({
+        ...req.body,
+        user: userId,
+    });
 
-        res.status(200).json({
-            success: true,
-            message: 'Transaction history fetched successfully',
-            summary: result.summary,
-            meta: result.meta,
-            data: result.data,
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+    sendResponse(res, {
+        statusCode: httpStatus.CREATED,
+        success: true,
+        message: "Transaction created successfully",
+        data: result,
+    });
+});
+
+const getTransactionHistory = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user?._id || (req.query.userId as string);
+    const { searchTerm, type, page, limit } = req.query;
+
+    const result = await TransactionService.getTransactionHistory(userId, {
+        searchTerm: searchTerm as string,
+        type: type as any,
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 10,
+    });
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Transaction history fetched successfully",
+        stats: result.summary,
+        meta: result.meta,
+        data: result.data,
+    });
+});
 
 export const TransactionController = {
     createPaymentIntent,
+    processRefund,
     handleStripeWebhook,
     createTransaction,
     getTransactionHistory,

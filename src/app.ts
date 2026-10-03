@@ -8,6 +8,8 @@ import router from "./app/routes";
 
 const app: Application = express();
 
+app.use("/api/v1/transactions/webhook", express.raw({ type: "application/json" }));
+
 const corsOptions = {
     origin: ["http://localhost:3030", "http://10.10.7.24:3030", "http://fundraising.apponislam.top", "https://fundraising.apponislam.top", "http://10.10.26.171:3030"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
@@ -18,10 +20,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Stripe Webhook requires raw body parsing for signature validation
-app.use(
-    '/api/v1/transaction/webhook',
-    express.raw({ type: 'application/json' })
-);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -31,6 +29,18 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/", (req: Request, res: Response) => {
     res.sendFile(path.join(__dirname, "../public/index.html"));
+});
+
+app.get("/api/v1/status", (req: Request, res: Response) => {
+    res.json({
+        success: true,
+        data: {
+            environment: process.env.NODE_ENV || "development",
+            port: process.env.PORT || 5000,
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString(),
+        },
+    });
 });
 
 app.use("/api/v1", router);

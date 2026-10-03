@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Porteinw | Backend Engine</title>
+        <title>Oopsy | Backend Engine</title>
 
         <link rel="icon" type="image/png" href="/favicon.png" />
         <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%230B6E7F%22/><text y=%22.9em%22 x=%22.1em%22 font-size=%2270%22 font-weight=%22800%22 fill=%22white%22 font-family=%22Outfit%22>P</text></svg>" />
@@ -278,7 +278,7 @@
         <div class="content-wrapper">
             <header class="brand">
                 <div class="brand-mark">P</div>
-                <div class="brand-name">Porteinw</div>
+                <div class="brand-name">Oopsy</div>
             </header>
 
             <main class="hero">
@@ -287,26 +287,26 @@
                     ENGINE_OPERATIONAL
                 </div>
                 <h1>Live.</h1>
-                <p>Advanced high-performance backend infrastructure for the Porteinw platform.</p>
+                <p>Advanced high-performance backend infrastructure for the Oopsy platform.</p>
             </main>
 
             <div class="info-bar">
                 <div class="info-item">
                     <label>Environment</label>
-                    <span>Production</span>
+                    <span id="env-val">Loading...</span>
                 </div>
                 <div class="info-item">
                     <label>Network_Port</label>
-                    <span>5000</span>
+                    <span id="port-val">Loading...</span>
                 </div>
                 <div class="info-item">
-                    <label>Uptime</label>
-                    <span id="running-time">00:00:00</span>
+                    <label>Time</label>
+                    <span id="running-time">--:--:--</span>
                 </div>
             </div>
 
             <footer>
-                <p>&copy; <span id="year"></span> PORTEINW PLATFORM</p>
+                <p>&copy; <span id="year"></span> OOPSY PLATFORM</p>
                 <p style="opacity: 0.5; font-size: 0.7rem">BUILD_STABLE: 1.0.0</p>
             </footer>
         </div>
@@ -314,25 +314,36 @@
         <script>
             document.getElementById("year").textContent = new Date().getFullYear();
 
-            const startTime = new Date();
+            // Set fallback port from window location
+            const currentPort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+            document.getElementById("port-val").textContent = currentPort;
+            document.getElementById("env-val").textContent = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'Development' : 'Production';
 
-            function updateUptime() {
-                const now = new Date();
-                const diff = now - startTime;
-                const hours = Math.floor(diff / (1000 * 60 * 60))
-                    .toString()
-                    .padStart(2, "0");
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-                    .toString()
-                    .padStart(2, "0");
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-                    .toString()
-                    .padStart(2, "0");
-                document.getElementById("running-time").textContent = `${hours}:${minutes}:${seconds}`;
+            async function fetchServerStatus() {
+                try {
+                    const res = await fetch('/api/v1/status');
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.data) {
+                            const env = json.data.environment;
+                            document.getElementById("env-val").textContent = env ? (env.charAt(0).toUpperCase() + env.slice(1)) : 'Production';
+                            document.getElementById("port-val").textContent = json.data.port || currentPort;
+                        }
+                    }
+                } catch (e) {
+                    console.log("Status fetch fallback:", e);
+                }
             }
 
-            updateUptime();
-            setInterval(updateUptime, 1000);
+            fetchServerStatus();
+
+            function updateClock() {
+                const now = new Date();
+                document.getElementById("running-time").textContent = now.toLocaleTimeString();
+            }
+
+            updateClock();
+            setInterval(updateClock, 1000);
         </script>
     </body>
 </html>

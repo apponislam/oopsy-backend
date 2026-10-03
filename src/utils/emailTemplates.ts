@@ -45,7 +45,7 @@ export const sendWelcomeEmail = (email: string, name: string) => {
     const html = `
         <div style="font-family: Arial, sans-serif; width: 100%; max-width: 520px; margin: 0 auto; padding: 0; background: white; border: 1px solid #f0f0f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; box-sizing: border-box;">
             <div style="background-color: #0B6E7F; background-image: linear-gradient(135deg, #0B6E7F 0%, #0ea5e9 100%); padding: 32px 24px; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 26px; font-weight: bold;">Welcome to Porteinw!</h1>
+                <h1 style="color: white; margin: 0; font-size: 26px; font-weight: bold;">Welcome to Oopsy!</h1>
                 <p style="color: rgba(255,255,255,0.9); margin: 12px 0 0 0; font-size: 15px;">We're excited to have you on board</p>
             </div>
             <div style="padding: 32px 28px;">
@@ -59,7 +59,7 @@ export const sendWelcomeEmail = (email: string, name: string) => {
             </div>
         </div>
     `;
-    sendMail(email, "Welcome to Porteinw!", html);
+    sendMail(email, "Welcome to Oopsy!", html);
 };
 
 export const sendAdminCreatedEmail = (email: string, name: string, password: string) => {
@@ -67,7 +67,7 @@ export const sendAdminCreatedEmail = (email: string, name: string, password: str
     const html = `
         <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">Hello ${name},</h2>
-            <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">You have been added as an Administrator for Porteinw.</p>
+            <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">You have been added as an Administrator for Oopsy.</p>
             <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Here are your temporary login credentials:</p>
             <div style="background: #fffaf0; border: 1px solid #ffe8b8; padding: 16px; margin: 20px 0; border-radius: 8px;">
                 <p style="margin: 0 0 8px 0; color: #4a4a4a; word-break: break-all;"><strong>Email:</strong> ${email}</p>
@@ -193,12 +193,12 @@ export const sendOrderConfirmationEmail = (email: string, customerName: string, 
             
             <div style="background: #fafafa; padding: 16px 20px; text-align: center; border-top: 1px solid #f0f0f0;">
                 ${orderIdDisplay ? `<p style="color: #8a8a8a; margin: 0 0 6px 0; font-size: 12px;">Order ID: <strong style="color: #4a4a4a;">${orderIdDisplay}</strong></p>` : ""}
-                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Porteinw. All rights reserved.</p>
+                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Oopsy. All rights reserved.</p>
             </div>
         </div>
     `;
 
-    sendMail(email, "Your Order Confirmation - Porteinw", html);
+    sendMail(email, "Your Order Confirmation - Oopsy", html);
 };
 
 export const sendPasswordChangedEmail = (email: string, name?: string, newPassword?: string) => {
@@ -206,7 +206,7 @@ export const sendPasswordChangedEmail = (email: string, name?: string, newPasswo
     const html = `
         <div style="font-family: Arial, sans-serif; width: 100%; max-width: 500px; margin: 0 auto; padding: 24px; background: white; border: 1px solid #f0f0f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); box-sizing: border-box;">
             <h2 style="color: #1a1a1a; margin-top: 0; font-size: 20px;">${name ? `Hello ${name},` : "Hello,"}</h2>
-            <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Your password for Porteinw has been updated by an administrator.</p>
+            <p style="color: #4a4a4a; line-height: 1.6; font-size: 14px;">Your password for Oopsy has been updated by an administrator.</p>
             ${
                 newPassword
                     ? `<div style="background: #fffaf0; border: 1px solid #ffe8b8; padding: 16px; margin: 20px 0; border-radius: 8px;">
@@ -221,7 +221,7 @@ export const sendPasswordChangedEmail = (email: string, name?: string, newPasswo
             <p style="color: #8a8a8a; font-size: 12px; margin-top: 24px;">If you did not request or expect this change, please contact support immediately.</p>
         </div>
     `;
-    sendMail(email, "Your Password Has Been Updated - Porteinw", html);
+    sendMail(email, "Your Password Has Been Updated - Oopsy", html);
 };
 
 export const sendCustomerServiceConfirmationEmail = (
@@ -249,7 +249,7 @@ export const sendCustomerServiceConfirmationEmail = (
                 <h2 style="color: #1a1a1a; margin: 0 0 14px 0; font-size: 17px;">Hello ${name},</h2>
                 
                 <p style="color: #4a4a4a; line-height: 1.6; margin: 0 0 20px 0; font-size: 14px;">
-                    Thank you for contacting Porteinw Customer Support. We have successfully received your request and our team will process it shortly.
+                    Thank you for contacting Oopsy Customer Support. We have successfully received your request and our team will process it shortly.
                 </p>
                 
                 <div style="background: #fffaf0; border: 1px solid #ffe8b8; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;">
@@ -280,12 +280,12 @@ export const sendCustomerServiceConfirmationEmail = (
             </div>
             
             <div style="background: #fafafa; padding: 14px 16px; text-align: center; border-top: 1px solid #f0f0f0;">
-                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Porteinw. All rights reserved.</p>
+                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Oopsy. All rights reserved.</p>
             </div>
         </div>
     `;
 
-    sendMail(email, "Customer Service Request Received - Porteinw", html);
+    sendMail(email, "Customer Service Request Received - Oopsy", html);
 };
 
 export const sendCustomerServiceReplyEmail = (
@@ -307,7 +307,7 @@ export const sendCustomerServiceReplyEmail = (
         <div style="font-family: Arial, sans-serif; width: 100%; max-width: 580px; margin: 0 auto; padding: 0; background: white; border: 1px solid #f0f0f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word;">
             <div style="background-color: #0B6E7F; background-image: linear-gradient(135deg, #0B6E7F 0%, #0ea5e9 100%); padding: 24px 16px; text-align: center;">
                 <h1 style="color: white; margin: 0; font-size: 22px; font-weight: bold;">Update on Your Support Request</h1>
-                <p style="color: rgba(255,255,255,0.9); margin: 6px 0 0 0; font-size: 13px;">Porteinw Customer Support Response</p>
+                <p style="color: rgba(255,255,255,0.9); margin: 6px 0 0 0; font-size: 13px;">Oopsy Customer Support Response</p>
                 <p style="color: rgba(255,255,255,0.85); margin: 6px 0 0 0; font-size: 12px; font-family: monospace; word-break: break-all;">Request ID: ${_id}</p>
             </div>
             
@@ -334,11 +334,11 @@ export const sendCustomerServiceReplyEmail = (
             </div>
             
             <div style="background: #fafafa; padding: 14px 16px; text-align: center; border-top: 1px solid #f0f0f0;">
-                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Porteinw. All rights reserved.</p>
+                <p style="color: #8a8a8a; margin: 0; font-size: 12px;">© 2026 Oopsy. All rights reserved.</p>
             </div>
         </div>
     `;
 
-    sendMail(email, `Update on Support Request #${_id} - Porteinw`, html);
+    sendMail(email, `Update on Support Request #${_id} - Oopsy`, html);
 };
 
