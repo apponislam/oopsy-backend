@@ -11,13 +11,8 @@ const transactionSchema = new Schema<ITransaction>(
         payer: {
             type: Schema.Types.ObjectId,
             ref: 'User',
-            required: true,
         },
         receiver: {
-            type: Schema.Types.ObjectId,
-            ref: 'User',
-        },
-        user: {
             type: Schema.Types.ObjectId,
             ref: 'User',
         },
@@ -88,10 +83,6 @@ transactionSchema.pre('validate', async function () {
             }
         }
         this.transactionId = candidateId;
-    }
-
-    if (this.payer && !this.user) {
-        this.user = this.payer;
     }
 });
 

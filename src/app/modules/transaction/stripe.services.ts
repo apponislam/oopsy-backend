@@ -72,7 +72,6 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
     const refundTransaction = await Transaction.create({
         payer: transaction.receiver || transaction.payer, // Receiver pays back
         receiver: transaction.payer,                      // Customer gets money back
-        user: transaction.payer,
         listing: transaction.listing,
         title: `Refund for ${transaction.title}`,
         type: 'REFUND',

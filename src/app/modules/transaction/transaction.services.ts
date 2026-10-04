@@ -15,7 +15,7 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
     const { searchTerm, type, page = 1, limit = 10 } = filters;
     const userObjId = new Types.ObjectId(userId);
     const query: any = {
-        $or: [{ payer: userObjId }, { receiver: userObjId }, { user: userObjId }],
+        $or: [{ payer: userObjId }, { receiver: userObjId }],
     };
 
     if (type && type !== 'ALL') {
@@ -54,7 +54,7 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
     const metricsAggregate = await Transaction.aggregate([
         {
             $match: {
-                $or: [{ payer: userObjId }, { receiver: userObjId }, { user: userObjId }],
+                $or: [{ payer: userObjId }, { receiver: userObjId }],
             },
         },
         {
@@ -180,7 +180,7 @@ const getSingleTransaction = async (id: string, userId?: string) => {
     const query: any = { _id: id };
     if (userId) {
         const userObjId = new Types.ObjectId(userId);
-        query.$or = [{ payer: userObjId }, { receiver: userObjId }, { user: userObjId }];
+        query.$or = [{ payer: userObjId }, { receiver: userObjId }];
     }
 
     const transaction = await Transaction.findOne(query)
@@ -221,10 +221,9 @@ const requestPayout = async (userId: string, amount: number, remarks?: string) =
     user.balance = currentBalance - amount;
     await user.save();
 
-    // Create a PENDING PAYOUT transaction record
+    // Create a PENDING PAYOUT transaction record (receiver = user receiving money, payer = undefined for Platform)
     const payoutTx = await Transaction.create({
-        payer: userId,
-        user: userId,
+        receiver: new Types.ObjectId(userId),
         title: `Withdrawal / Payout Request of $${amount}`,
         type: 'PAYOUT',
         amount,
@@ -254,8 +253,8 @@ const acceptPayout = async (transactionId: string) => {
         throw new Error(`Payout request is already ${transaction.status}`);
     }
 
-    // Get user details to check Stripe account
-    const user = await UserModel.findById(transaction.payer);
+    // Get recipient user details to check Stripe account
+    const user = await UserModel.findById(transaction.receiver);
 
     // Trigger Stripe payout / transfer execution
     const stripeResult = await StripeService.transferToConnectedAccount({
@@ -294,8 +293,8 @@ const rejectPayout = async (transactionId: string, reason?: string) => {
     await transaction.save();
 
     // Refund the deducted amount back to user's balance
-    if (transaction.payer) {
-        await UserModel.findByIdAndUpdate(transaction.payer, {
+    if (transaction.receiver) {
+        await UserModel.findByIdAndUpdate(transaction.receiver, {
             $inc: { balance: transaction.amount },
         });
     }

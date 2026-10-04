@@ -57,8 +57,8 @@ const handleStripeWebhook = catchAsync(async (req: Request, res: Response) => {
 const createTransaction = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user._id;
     const result = await TransactionService.createTransaction({
+        payer: userId,
         ...req.body,
-        user: userId,
     });
 
     sendResponse(res, {

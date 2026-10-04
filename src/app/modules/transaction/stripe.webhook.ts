@@ -45,7 +45,6 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
                     await Transaction.create({
                         payer: new Types.ObjectId(userId),
                         receiver: receiverId,
-                        user: new Types.ObjectId(userId),
                         listing: listingId ? new Types.ObjectId(listingId) : undefined,
                         title: title || 'Stripe Payment',
                         type: 'BOOKING',
