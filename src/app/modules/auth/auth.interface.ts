@@ -30,6 +30,7 @@ export interface User {
     businessDocument?: string;
     governmentIssuedId?: string;
     balance?: number;
+    stripeAccountId?: string;
     isActive: boolean;
     isEmailVerified: boolean;
     isApproved?: boolean;

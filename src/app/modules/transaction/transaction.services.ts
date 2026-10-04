@@ -1,6 +1,8 @@
 import { Transaction } from './transaction.model';
 import { ITransaction, ITransactionFilterOptions } from './transaction.interface';
 import { Types } from 'mongoose';
+import { UserModel } from '../auth/auth.model';
+import { StripeService } from './stripe.services';
 
 // Create a new transaction manually
 const createTransaction = async (payload: Partial<ITransaction>): Promise<ITransaction> => {
@@ -199,10 +201,116 @@ const getSingleTransactionForAdmin = async (id: string) => {
     return transaction;
 };
 
+// 1. User requests a Payout / Withdraw
+const requestPayout = async (userId: string, amount: number, remarks?: string) => {
+    if (amount <= 0) {
+        throw new Error('Payout amount must be greater than zero');
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    const currentBalance = user.balance || 0;
+    if (currentBalance < amount) {
+        throw new Error(`Insufficient balance. Current balance is $${currentBalance}`);
+    }
+
+    // Deduct user balance upfront to hold funds
+    user.balance = currentBalance - amount;
+    await user.save();
+
+    // Create a PENDING PAYOUT transaction record
+    const payoutTx = await Transaction.create({
+        payer: userId,
+        user: userId,
+        title: `Withdrawal / Payout Request of $${amount}`,
+        type: 'PAYOUT',
+        amount,
+        currency: 'usd',
+        status: 'PENDING',
+        remarks: remarks || 'User requested payout',
+    });
+
+    return {
+        remainingBalance: user.balance,
+        transaction: payoutTx,
+    };
+};
+
+// 2. Super Admin accepts/approves a payout request
+const acceptPayout = async (transactionId: string) => {
+    const transaction = await Transaction.findById(transactionId);
+    if (!transaction) {
+        throw new Error('Transaction not found');
+    }
+
+    if (transaction.type !== 'PAYOUT') {
+        throw new Error('Transaction is not a payout request');
+    }
+
+    if (transaction.status !== 'PENDING') {
+        throw new Error(`Payout request is already ${transaction.status}`);
+    }
+
+    // Get user details to check Stripe account
+    const user = await UserModel.findById(transaction.payer);
+
+    // Trigger Stripe payout / transfer execution
+    const stripeResult = await StripeService.transferToConnectedAccount({
+        amount: transaction.amount,
+        stripeAccountId: user?.stripeAccountId,
+        currency: transaction.currency || 'usd',
+    });
+
+    transaction.status = 'PAID';
+    transaction.stripeTransferId = stripeResult.transferId;
+    await transaction.save();
+
+    return transaction;
+};
+
+// 3. Super Admin rejects a payout request (refunds balance back to user)
+const rejectPayout = async (transactionId: string, reason?: string) => {
+    const transaction = await Transaction.findById(transactionId);
+    if (!transaction) {
+        throw new Error('Transaction not found');
+    }
+
+    if (transaction.type !== 'PAYOUT') {
+        throw new Error('Transaction is not a payout request');
+    }
+
+    if (transaction.status !== 'PENDING') {
+        throw new Error(`Payout request is already ${transaction.status}`);
+    }
+
+    // Update status to REJECTED
+    transaction.status = 'REJECTED';
+    if (reason) {
+        transaction.remarks = reason;
+    }
+    await transaction.save();
+
+    // Refund the deducted amount back to user's balance
+    if (transaction.payer) {
+        await UserModel.findByIdAndUpdate(transaction.payer, {
+            $inc: { balance: transaction.amount },
+        });
+    }
+
+    return transaction;
+};
+
 export const TransactionService = {
     createTransaction,
     getTransactionHistory,
     getAllTransactionsForAdmin,
     getSingleTransaction,
     getSingleTransactionForAdmin,
+    requestPayout,
+    acceptPayout,
+    rejectPayout,
 };
+

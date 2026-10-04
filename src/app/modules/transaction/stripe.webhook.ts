@@ -103,6 +103,53 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
             break;
         }
 
+        case 'transfer.created': {
+            const transfer = event.data.object as Stripe.Transfer;
+            console.log(`Stripe Transfer created: ${transfer.id} of amount ${transfer.amount / 100}`);
+            break;
+        }
+
+        case 'transfer.reversed': {
+            const transfer = event.data.object as Stripe.Transfer;
+            const existingTx = await Transaction.findOne({ stripeTransferId: transfer.id });
+            if (existingTx) {
+                existingTx.status = 'FAILED';
+                existingTx.remarks = 'Stripe transfer reversed';
+                await existingTx.save();
+
+                // Re-credit the user balance if transfer was reversed/failed
+                if (existingTx.payer) {
+                    await UserModel.findByIdAndUpdate(existingTx.payer, {
+                        $inc: { balance: existingTx.amount },
+                    });
+                }
+            }
+            break;
+        }
+
+        case 'payout.paid': {
+            const payout = event.data.object as Stripe.Payout;
+            console.log(`Stripe Payout succeeded: ${payout.id} of amount ${payout.amount / 100}`);
+            break;
+        }
+
+        case 'payout.failed': {
+            const payout = event.data.object as Stripe.Payout;
+            const existingTx = await Transaction.findOne({ stripeTransferId: payout.id });
+            if (existingTx) {
+                existingTx.status = 'FAILED';
+                existingTx.remarks = payout.failure_message || 'Stripe payout failed';
+                await existingTx.save();
+
+                if (existingTx.payer) {
+                    await UserModel.findByIdAndUpdate(existingTx.payer, {
+                        $inc: { balance: existingTx.amount },
+                    });
+                }
+            }
+            break;
+        }
+
         default:
             console.log(`Unhandled Stripe event type: ${event.type}`);
     }

@@ -44,13 +44,16 @@ const transactionSchema = new Schema<ITransaction>(
         },
         status: {
             type: String,
-            enum: ['PAID', 'PENDING', 'REFUNDED', 'FAILED'],
+            enum: ['PAID', 'PENDING', 'REFUNDED', 'FAILED', 'REJECTED'],
             default: 'PENDING',
         },
         stripePaymentIntentId: {
             type: String,
         },
         stripeRefundId: {
+            type: String,
+        },
+        stripeTransferId: {
             type: String,
         },
         remarks: {

@@ -71,6 +71,10 @@ const UserSchema = new Schema<User>(
             min: 0,
         },
 
+        stripeAccountId: {
+            type: String,
+        },
+
         isActive: {
             type: Boolean,
             default: true,

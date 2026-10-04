@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 
 export type TransactionType = 'BOOKING' | 'PAYOUT' | 'REFUND' | 'PLATFORM_FEE';
-export type TransactionStatus = 'PAID' | 'PENDING' | 'REFUNDED' | 'FAILED';
+export type TransactionStatus = 'PAID' | 'PENDING' | 'REFUNDED' | 'FAILED' | 'REJECTED';
 
 export interface ITransaction {
     _id?: Types.ObjectId;
@@ -17,6 +17,7 @@ export interface ITransaction {
     status: TransactionStatus;
     stripePaymentIntentId?: string;
     stripeRefundId?: string;
+    stripeTransferId?: string;
     remarks?: string;
     createdAt?: Date;
     updatedAt?: Date;

@@ -12,10 +12,15 @@ router.post('/webhook', TransactionController.handleStripeWebhook);
 router.get('/admin', auth, authorize(['SUPER_ADMIN']), TransactionController.getAllTransactionsForAdmin);
 router.get('/admin/:id', auth, authorize(['SUPER_ADMIN']), TransactionController.getSingleTransactionForAdmin);
 router.post('/refund', auth, authorize(['SUPER_ADMIN']), TransactionController.processRefund);
+router.patch('/payout/:id/accept', auth, authorize(['SUPER_ADMIN']), TransactionController.acceptPayout);
+router.patch('/payout/:id/reject', auth, authorize(['SUPER_ADMIN']), TransactionController.rejectPayout);
 
 // Authenticated User Routes
 router.post('/create-payment-intent', auth, TransactionController.createPaymentIntent);
+router.post('/connect-account', auth, TransactionController.createConnectAccount);
+router.post('/connect-onboarding', auth, TransactionController.createAccountLink);
 router.post('/create', auth, TransactionController.createTransaction);
+router.post('/payout-request', auth, TransactionController.requestPayout);
 router.get('/history', auth, TransactionController.getTransactionHistory);
 router.get('/:id', auth, TransactionController.getSingleTransaction);
 

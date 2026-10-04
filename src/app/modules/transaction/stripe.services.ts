@@ -90,7 +90,79 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
     };
 };
 
+// Create a Stripe Connect Custom/Express Account for user
+const createConnectAccount = async (userId: string, email: string) => {
+    const user = await UserModel.findById(userId);
+    if (!user) throw new Error('User not found');
+
+    if (user.stripeAccountId) {
+        return { stripeAccountId: user.stripeAccountId };
+    }
+
+    const account = await stripe.accounts.create({
+        type: 'express',
+        email,
+        capabilities: {
+            transfers: { requested: true },
+        },
+    });
+
+    user.stripeAccountId = account.id;
+    await user.save();
+
+    return { stripeAccountId: account.id };
+};
+
+// Create Stripe Connect Onboarding Account Link for user onboarding
+const createAccountLink = async (userId: string, returnUrl?: string, refreshUrl?: string) => {
+    const user = await UserModel.findById(userId);
+    if (!user) throw new Error('User not found');
+
+    let accountId = user.stripeAccountId;
+    if (!accountId) {
+        const created = await createConnectAccount(userId, user.email);
+        accountId = created.stripeAccountId;
+    }
+
+    const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: refreshUrl || `${config.client_url}/stripe/reauth`,
+        return_url: returnUrl || `${config.client_url}/stripe/return`,
+        type: 'account_onboarding',
+    });
+
+    return { url: accountLink.url };
+};
+
+// Transfer Payout Amount via Stripe Connect or Payout
+const transferToConnectedAccount = async (payload: { amount: number; stripeAccountId?: string; destinationAccountId?: string; currency?: string }) => {
+    const amountInCents = Math.round(payload.amount * 100);
+    const destination = payload.stripeAccountId || payload.destinationAccountId;
+
+    if (destination) {
+        // Transfer funds directly to the user's connected Stripe Express/Custom account
+        const transfer = await stripe.transfers.create({
+            amount: amountInCents,
+            currency: payload.currency || 'usd',
+            destination,
+            description: 'Payout withdrawal approved by admin',
+        });
+        return { transferId: transfer.id, transfer };
+    } else {
+        // Platform Payout (if single account mode)
+        const payout = await stripe.payouts.create({
+            amount: amountInCents,
+            currency: payload.currency || 'usd',
+            description: 'Payout withdrawal approved by admin',
+        });
+        return { transferId: payout.id, payout };
+    }
+};
+
 export const StripeService = {
     createPaymentIntent,
     processRefund,
+    createConnectAccount,
+    createAccountLink,
+    transferToConnectedAccount,
 };
