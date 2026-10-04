@@ -164,10 +164,24 @@ const getListingReviewStats = catchAsync(async (req: Request, res: Response) => 
     });
 });
 
+const getUserReviewsByUserId = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.params.userId as string;
+    const result = await reviewServices.getUserReviews(userId, req.query);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "User reviews retrieved successfully",
+        data: result.data,
+        meta: result.meta,
+    });
+});
+
 export const reviewControllers = {
     createReview,
     getListingReviews,
     getUserReviews,
+    getUserReviewsByUserId,
     getSingleReview,
     updateReview,
     deleteReview,

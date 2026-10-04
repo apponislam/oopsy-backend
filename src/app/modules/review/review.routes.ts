@@ -8,6 +8,7 @@ const router = Router();
 // Public routes
 router.get("/listing/:listingId", reviewControllers.getListingReviews);
 router.get("/listing/:listingId/stats", reviewControllers.getListingReviewStats);
+router.get("/user/:userId", reviewControllers.getUserReviewsByUserId);
 router.get("/:id", reviewControllers.getSingleReview);
 
 // Authenticated user routes for reviews

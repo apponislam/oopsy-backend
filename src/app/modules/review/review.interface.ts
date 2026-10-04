@@ -19,7 +19,7 @@ export interface IReview {
     _id?: Types.ObjectId;
     user: Types.ObjectId;
     listing: Types.ObjectId;
-    rating: number; // Overall rating (1-5), automatically computed from category average if omitted
+    rating: number;
     categories: IRatingCategories;
     comment: string;
     photos?: string[];
