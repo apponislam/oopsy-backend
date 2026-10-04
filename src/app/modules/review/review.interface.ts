@@ -24,6 +24,7 @@ export interface IReview {
     comment: string;
     photos?: string[];
     reply?: IReviewReply;
+    isApproved?: boolean;
     isDeleted?: boolean;
     createdAt?: Date;
     updatedAt?: Date;

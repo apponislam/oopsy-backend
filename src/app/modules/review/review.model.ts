@@ -93,6 +93,10 @@ const ReviewSchema = new Schema<IReview>(
             type: ReviewReplySchema,
             default: undefined,
         },
+        isApproved: {
+            type: Boolean,
+            default: true,
+        },
         isDeleted: {
             type: Boolean,
             default: false,

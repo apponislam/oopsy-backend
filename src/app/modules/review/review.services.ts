@@ -5,6 +5,7 @@ import fs from "fs";
 import ApiError from "../../../errors/ApiError";
 import { ListingModel } from "../listing/listing.model";
 import { UserModel } from "../auth/auth.model";
+import { SettingModel } from "../setting/setting.model";
 import { IRatingCategories, IReview, IReviewStats } from "./review.interface";
 import { ReviewModel } from "./review.model";
 
@@ -57,6 +58,10 @@ const createReview = async (
         photoUrls = [...photoUrls, ...uploadedUrls];
     }
 
+    // 6. Check global settings for autoApproveReviews
+    const settings = await SettingModel.findOne();
+    const isApproved = settings ? settings.autoApproveReviews : false;
+
     const review = await ReviewModel.create({
         user: userId,
         listing: listingId,
@@ -64,10 +69,13 @@ const createReview = async (
         categories,
         comment,
         photos: photoUrls,
+        isApproved,
     });
 
-    // Update aggregated rating and total count on listing
-    await updateListingReviewMetrics(listingId);
+    // Update aggregated rating and total count on listing if approved
+    if (isApproved) {
+        await updateListingReviewMetrics(listingId);
+    }
 
     const populatedReview = await review.populate([{ path: "user", select: "name email profileImage role" }]);
     return populatedReview;
@@ -81,7 +89,7 @@ const getListingReviews = async (listingId: string, query: any) => {
         throw new ApiError(httpStatus.NOT_FOUND, "Listing not found");
     }
 
-    const filter = { listing: listingId, isDeleted: false };
+    const filter = { listing: listingId, isApproved: true, isDeleted: false };
     const skip = (Number(page) - 1) * Number(limit);
 
     const [reviews, total, stats] = await Promise.all([
@@ -342,6 +350,7 @@ const updateListingReviewMetrics = async (listingId: string) => {
         {
             $match: {
                 listing: new mongoose.Types.ObjectId(listingId),
+                isApproved: true,
                 isDeleted: false,
             },
         },
@@ -370,6 +379,7 @@ const updateListingReviewMetrics = async (listingId: string) => {
             {
                 $match: {
                     listing: { $in: hostListingIds },
+                    isApproved: true,
                     isDeleted: false,
                 },
             },
@@ -396,6 +406,7 @@ const getListingReviewStats = async (listingId: string): Promise<IReviewStats> =
         {
             $match: {
                 listing: new mongoose.Types.ObjectId(listingId),
+                isApproved: true,
                 isDeleted: false,
             },
         },
