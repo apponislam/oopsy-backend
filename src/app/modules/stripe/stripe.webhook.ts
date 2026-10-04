@@ -3,6 +3,7 @@ import config from "../../config";
 import { Transaction } from "../transaction/transaction.model";
 import { UserModel } from "../auth/auth.model";
 import { ListingModel } from "../listing/listing.model";
+import { SettingModel } from "../setting/setting.model";
 import { Types } from "mongoose";
 
 const stripe = new Stripe(config.stripe.stripe_secret_key || "", {
@@ -41,6 +42,15 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
 
                 const amountPaid = paymentIntent.amount / 100;
 
+                // Fetch platform defaultCommissionPercentage from settings
+                let settings = await SettingModel.findOne();
+                if (!settings) {
+                    settings = await SettingModel.create({});
+                }
+                const feePercentage = settings.defaultCommissionPercentage ?? 10;
+                const platformFeeAmount = (amountPaid * feePercentage) / 100;
+                const netAmountForHost = amountPaid - platformFeeAmount;
+
                 if (!existingTx) {
                     await Transaction.create({
                         payer: new Types.ObjectId(userId),
@@ -51,17 +61,23 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
                         amount: amountPaid,
                         status: "PAID",
                         stripePaymentIntentId: paymentIntent.id,
+                        platformFeePercentage: feePercentage,
+                        platformFeeAmount: platformFeeAmount,
+                        isFeeSettled: true,
                     });
                 } else {
                     existingTx.status = "PAID";
                     if (receiverId) existingTx.receiver = receiverId;
+                    existingTx.platformFeePercentage = feePercentage;
+                    existingTx.platformFeeAmount = platformFeeAmount;
+                    existingTx.isFeeSettled = true;
                     await existingTx.save();
                 }
 
-                // Automatically credit receiver's (host's) balance if receiver exists
+                // Automatically credit receiver's (host's) net balance (amount minus platform fee)
                 if (receiverId) {
                     await UserModel.findByIdAndUpdate(receiverId, {
-                        $inc: { balance: amountPaid },
+                        $inc: { balance: netAmountForHost },
                     });
                 }
             }

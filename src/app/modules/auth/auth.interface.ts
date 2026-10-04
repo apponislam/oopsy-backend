@@ -31,6 +31,8 @@ export interface User {
     governmentIssuedId?: string;
     balance?: number;
     stripeAccountId?: string;
+    averageRating?: number;
+    totalReviews?: number;
     isActive: boolean;
     isEmailVerified: boolean;
     isApproved?: boolean;

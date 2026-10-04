@@ -20,6 +20,14 @@ const transactionSchema = new Schema<ITransaction>(
             type: Schema.Types.ObjectId,
             ref: 'Listing',
         },
+        booking: {
+            type: Schema.Types.ObjectId,
+            ref: 'Booking',
+        },
+        bookingTransaction: {
+            type: Schema.Types.ObjectId,
+            ref: 'Transaction',
+        },
         title: {
             type: String,
             required: true,
@@ -50,6 +58,18 @@ const transactionSchema = new Schema<ITransaction>(
         },
         stripeTransferId: {
             type: String,
+        },
+        platformFeePercentage: {
+            type: Number,
+            default: 0,
+        },
+        platformFeeAmount: {
+            type: Number,
+            default: 0,
+        },
+        isFeeSettled: {
+            type: Boolean,
+            default: false,
         },
         remarks: {
             type: String,

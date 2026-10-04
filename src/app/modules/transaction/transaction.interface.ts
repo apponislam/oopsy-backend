@@ -9,6 +9,8 @@ export interface ITransaction {
     payer?: Types.ObjectId;
     receiver?: Types.ObjectId;
     listing?: Types.ObjectId;
+    booking?: Types.ObjectId;             // Ref to Booking
+    bookingTransaction?: Types.ObjectId;  // Ref to the original BOOKING Transaction (for PAYOUT or REFUND)
     title: string;
     type: TransactionType;
     amount: number;
@@ -17,6 +19,9 @@ export interface ITransaction {
     stripePaymentIntentId?: string;
     stripeRefundId?: string;
     stripeTransferId?: string;
+    platformFeePercentage?: number;  // Platform fee percentage (e.g. 10 for 10%)
+    platformFeeAmount?: number;      // Calculated platform fee amount in money
+    isFeeSettled?: boolean;          // Whether the platform fee has been paid/settled
     remarks?: string;
     createdAt?: Date;
     updatedAt?: Date;

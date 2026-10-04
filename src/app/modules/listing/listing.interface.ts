@@ -25,6 +25,8 @@ export interface IListing {
     location: IListingLocation;
     photos: string[];
     pricingTiers: IPricingTier[];
+    averageRating?: number;
+    totalReviews?: number;
     isActive?: boolean;
     isApproved?: boolean;
     approvedBy?: Types.ObjectId;

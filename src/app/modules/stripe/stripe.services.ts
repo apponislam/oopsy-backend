@@ -73,6 +73,8 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
         payer: transaction.receiver || transaction.payer, // Receiver pays back
         receiver: transaction.payer, // Customer gets money back
         listing: transaction.listing,
+        booking: transaction.booking,
+        bookingTransaction: transaction._id,
         title: `Refund for ${transaction.title}`,
         type: "REFUND",
         amount: refundAmount,

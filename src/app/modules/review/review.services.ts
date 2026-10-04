@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import ApiError from "../../../errors/ApiError";
 import { ListingModel } from "../listing/listing.model";
+import { UserModel } from "../auth/auth.model";
 import { IRatingCategories, IReview, IReviewStats } from "./review.interface";
 import { ReviewModel } from "./review.model";
 
@@ -64,6 +65,9 @@ const createReview = async (
         comment,
         photos: photoUrls,
     });
+
+    // Update aggregated rating and total count on listing
+    await updateListingReviewMetrics(listingId);
 
     const populatedReview = await review.populate([{ path: "user", select: "name email profileImage role" }]);
     return populatedReview;
@@ -212,6 +216,11 @@ const updateReview = async (id: string, userId: string, payload: Partial<IReview
 
     const updatedReview = await ReviewModel.findByIdAndUpdate(id, { $set: updatedData }, { returnDocument: "after", runValidators: true }).populate("user", "name email profileImage").populate("reply.user", "name email profileImage role");
 
+    // Recalculate and update listing metrics if rating changed
+    if (existingReview.listing) {
+        await updateListingReviewMetrics(existingReview.listing.toString());
+    }
+
     return updatedReview;
 };
 
@@ -242,6 +251,11 @@ const deleteReview = async (id: string, userId: string, userRole?: string) => {
 
     existingReview.isDeleted = true;
     await existingReview.save();
+
+    // Recalculate and update listing metrics on deletion
+    if (existingReview.listing) {
+        await updateListingReviewMetrics(existingReview.listing.toString());
+    }
 
     return { message: "Review deleted successfully" };
 };
@@ -321,6 +335,60 @@ const deleteReply = async (reviewId: string, userId: string, userRole?: string) 
     await review.save();
 
     return { message: "Reply deleted successfully" };
+};
+
+const updateListingReviewMetrics = async (listingId: string) => {
+    const stats = await ReviewModel.aggregate([
+        {
+            $match: {
+                listing: new mongoose.Types.ObjectId(listingId),
+                isDeleted: false,
+            },
+        },
+        {
+            $group: {
+                _id: "$listing",
+                averageRating: { $avg: "$rating" },
+                totalReviews: { $sum: 1 },
+            },
+        },
+    ]);
+
+    const averageRating = stats.length > 0 ? Math.round((stats[0].averageRating || 0) * 10) / 10 : 0;
+    const totalReviews = stats.length > 0 ? stats[0].totalReviews || 0 : 0;
+
+    const listing = await ListingModel.findByIdAndUpdate(listingId, {
+        $set: { averageRating, totalReviews },
+    });
+
+    // Also update host's aggregated overall rating across all their listings
+    if (listing && listing.host) {
+        const hostListings = await ListingModel.find({ host: listing.host, isDeleted: false });
+        const hostListingIds = hostListings.map((l) => l._id);
+
+        const hostStats = await ReviewModel.aggregate([
+            {
+                $match: {
+                    listing: { $in: hostListingIds },
+                    isDeleted: false,
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: "$rating" },
+                    totalReviews: { $sum: 1 },
+                },
+            },
+        ]);
+
+        const hostAvgRating = hostStats.length > 0 ? Math.round((hostStats[0].averageRating || 0) * 10) / 10 : 0;
+        const hostTotalReviews = hostStats.length > 0 ? hostStats[0].totalReviews || 0 : 0;
+
+        await UserModel.findByIdAndUpdate(listing.host, {
+            $set: { averageRating: hostAvgRating, totalReviews: hostTotalReviews },
+        });
+    }
 };
 
 const getListingReviewStats = async (listingId: string): Promise<IReviewStats> => {
