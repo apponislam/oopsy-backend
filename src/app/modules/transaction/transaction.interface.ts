@@ -1,13 +1,13 @@
-import { Types } from 'mongoose';
+import { Types } from "mongoose";
 
-export type TransactionType = 'BOOKING' | 'PAYOUT' | 'REFUND' | 'PLATFORM_FEE';
-export type TransactionStatus = 'PAID' | 'PENDING' | 'REFUNDED' | 'FAILED' | 'REJECTED';
+export type TransactionType = "BOOKING" | "PAYOUT" | "REFUND" | "PLATFORM_FEE";
+export type TransactionStatus = "PAID" | "PENDING" | "REFUNDED" | "FAILED" | "REJECTED";
 
 export interface ITransaction {
     _id?: Types.ObjectId;
     transactionId: string;
-    payer?: Types.ObjectId;     // User who paid (Customer / Client)
-    receiver?: Types.ObjectId;   // User who receives money (Host / Provider)
+    payer?: Types.ObjectId;
+    receiver?: Types.ObjectId;
     listing?: Types.ObjectId;
     title: string;
     type: TransactionType;
@@ -24,7 +24,7 @@ export interface ITransaction {
 
 export interface ITransactionFilterOptions {
     searchTerm?: string;
-    type?: 'ALL' | 'BOOKINGS' | 'PAYOUTS' | 'REFUNDS';
+    type?: "ALL" | "BOOKINGS" | "PAYOUTS" | "REFUNDS";
     page?: number;
     limit?: number;
 }

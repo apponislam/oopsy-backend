@@ -5,6 +5,7 @@ import sendResponse from "../../../utils/sendResponse";
 import { TransactionService } from "./transaction.services";
 import { StripeService } from "./stripe.services";
 import { StripeWebhookService } from "./stripe.webhook";
+import config from "../../config";
 
 const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user._id;
@@ -208,6 +209,14 @@ const createAccountLink = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const handleStripeReturn = catchAsync(async (req: Request, res: Response) => {
+    res.redirect("oopsy://withdraw/onboarding-complete");
+});
+
+const handleStripeReauth = catchAsync(async (req: Request, res: Response) => {
+    res.redirect("oopsy://withdraw/onboarding-reauth");
+});
+
 export const TransactionController = {
     createPaymentIntent,
     processRefund,
@@ -222,5 +231,7 @@ export const TransactionController = {
     rejectPayout,
     createConnectAccount,
     createAccountLink,
+    handleStripeReturn,
+    handleStripeReauth,
 };
 

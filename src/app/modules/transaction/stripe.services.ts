@@ -125,8 +125,8 @@ const createAccountLink = async (userId: string, returnUrl?: string, refreshUrl?
 
     const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: refreshUrl || `${config.client_url}/stripe/reauth`,
-        return_url: returnUrl || `${config.client_url}/stripe/return`,
+        refresh_url: refreshUrl || `${config.server_url}/api/v1/transactions/stripe/reauth`,
+        return_url: returnUrl || `${config.server_url}/api/v1/transactions/stripe/return`,
         type: 'account_onboarding',
     });
 

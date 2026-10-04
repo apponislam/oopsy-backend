@@ -14,6 +14,7 @@ export default {
     jwt_refresh_expire: process.env.JWT_REFRESH_EXPIRE,
     jwt_password_reset_secret: process.env.JWT_PASSWORD_RESET_SECRET,
     client_url: process.env.CLIENT_URL,
+    server_url: process.env.SERVER_URL || `http://${process.env.IP || 'localhost'}:${process.env.PORT || 5000}`,
     mail: {
         smtp_host: process.env.SMTP_HOST,
         smtp_port: process.env.SMTP_PORT,

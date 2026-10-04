@@ -22,6 +22,9 @@ router.post('/connect-onboarding', auth, TransactionController.createAccountLink
 router.post('/create', auth, TransactionController.createTransaction);
 router.post('/payout-request', auth, TransactionController.requestPayout);
 router.get('/history', auth, TransactionController.getTransactionHistory);
+// Stripe Redirect Routes (Onboarding Callbacks)
+router.get('/stripe/return', TransactionController.handleStripeReturn);
+router.get('/stripe/reauth', TransactionController.handleStripeReauth);
 router.get('/:id', auth, TransactionController.getSingleTransaction);
 
 export const TransactionRoutes = router;
