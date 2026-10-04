@@ -1,18 +1,18 @@
-import Stripe from 'stripe';
-import config from '../../config';
-import { Transaction } from './transaction.model';
-import { UserModel } from '../auth/auth.model';
-import { ListingModel } from '../listing/listing.model';
-import { Types } from 'mongoose';
+import Stripe from "stripe";
+import config from "../../config";
+import { Transaction } from "../transaction/transaction.model";
+import { UserModel } from "../auth/auth.model";
+import { ListingModel } from "../listing/listing.model";
+import { Types } from "mongoose";
 
-const stripe = new Stripe(config.stripe.stripe_secret_key || '', {
-    apiVersion: '2025-02-24.acacia' as any,
+const stripe = new Stripe(config.stripe.stripe_secret_key || "", {
+    apiVersion: "2025-02-24.acacia" as any,
 });
 
 const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
     const webhookSecret = config.stripe.stripe_webhook_secret;
     if (!webhookSecret) {
-        throw new Error('Stripe webhook secret is not configured.');
+        throw new Error("Stripe webhook secret is not configured.");
     }
 
     let event: Stripe.Event;
@@ -24,7 +24,7 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
     }
 
     switch (event.type) {
-        case 'payment_intent.succeeded': {
+        case "payment_intent.succeeded": {
             const paymentIntent = event.data.object as Stripe.PaymentIntent;
             const { userId, listingId, title } = paymentIntent.metadata || {};
 
@@ -46,14 +46,14 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
                         payer: new Types.ObjectId(userId),
                         receiver: receiverId,
                         listing: listingId ? new Types.ObjectId(listingId) : undefined,
-                        title: title || 'Stripe Payment',
-                        type: 'BOOKING',
+                        title: title || "Stripe Payment",
+                        type: "BOOKING",
                         amount: amountPaid,
-                        status: 'PAID',
+                        status: "PAID",
                         stripePaymentIntentId: paymentIntent.id,
                     });
                 } else {
-                    existingTx.status = 'PAID';
+                    existingTx.status = "PAID";
                     if (receiverId) existingTx.receiver = receiverId;
                     await existingTx.save();
                 }
@@ -68,27 +68,25 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
             break;
         }
 
-        case 'payment_intent.payment_failed': {
+        case "payment_intent.payment_failed": {
             const paymentIntent = event.data.object as Stripe.PaymentIntent;
             const existingTx = await Transaction.findOne({ stripePaymentIntentId: paymentIntent.id });
             if (existingTx) {
-                existingTx.status = 'FAILED';
+                existingTx.status = "FAILED";
                 await existingTx.save();
             }
             break;
         }
 
-        case 'charge.refunded': {
+        case "charge.refunded": {
             const charge = event.data.object as Stripe.Charge;
             if (charge.payment_intent) {
-                const paymentIntentId = typeof charge.payment_intent === 'string' 
-                    ? charge.payment_intent 
-                    : charge.payment_intent.id;
-                
+                const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent.id;
+
                 const existingTx = await Transaction.findOne({ stripePaymentIntentId: paymentIntentId });
                 if (existingTx) {
-                    const wasPaid = existingTx.status === 'PAID';
-                    existingTx.status = 'REFUNDED';
+                    const wasPaid = existingTx.status === "PAID";
+                    existingTx.status = "REFUNDED";
                     await existingTx.save();
 
                     // Deduct from receiver's balance if it was credited previously
@@ -102,18 +100,18 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
             break;
         }
 
-        case 'transfer.created': {
+        case "transfer.created": {
             const transfer = event.data.object as Stripe.Transfer;
             console.log(`Stripe Transfer created: ${transfer.id} of amount ${transfer.amount / 100}`);
             break;
         }
 
-        case 'transfer.reversed': {
+        case "transfer.reversed": {
             const transfer = event.data.object as Stripe.Transfer;
             const existingTx = await Transaction.findOne({ stripeTransferId: transfer.id });
             if (existingTx) {
-                existingTx.status = 'FAILED';
-                existingTx.remarks = 'Stripe transfer reversed';
+                existingTx.status = "FAILED";
+                existingTx.remarks = "Stripe transfer reversed";
                 await existingTx.save();
 
                 // Re-credit the user balance if transfer was reversed/failed
@@ -126,18 +124,18 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
             break;
         }
 
-        case 'payout.paid': {
+        case "payout.paid": {
             const payout = event.data.object as Stripe.Payout;
             console.log(`Stripe Payout succeeded: ${payout.id} of amount ${payout.amount / 100}`);
             break;
         }
 
-        case 'payout.failed': {
+        case "payout.failed": {
             const payout = event.data.object as Stripe.Payout;
             const existingTx = await Transaction.findOne({ stripeTransferId: payout.id });
             if (existingTx) {
-                existingTx.status = 'FAILED';
-                existingTx.remarks = payout.failure_message || 'Stripe payout failed';
+                existingTx.status = "FAILED";
+                existingTx.remarks = payout.failure_message || "Stripe payout failed";
                 await existingTx.save();
 
                 if (existingTx.payer) {

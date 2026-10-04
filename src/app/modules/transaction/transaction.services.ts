@@ -1,8 +1,8 @@
-import { Transaction } from './transaction.model';
-import { ITransaction, ITransactionFilterOptions } from './transaction.interface';
-import { Types } from 'mongoose';
-import { UserModel } from '../auth/auth.model';
-import { StripeService } from './stripe.services';
+import { Transaction } from "./transaction.model";
+import { ITransaction, ITransactionFilterOptions } from "./transaction.interface";
+import { Types } from "mongoose";
+import { UserModel } from "../auth/auth.model";
+import { StripeService } from "../stripe/stripe.services";
 
 // Create a new transaction manually
 const createTransaction = async (payload: Partial<ITransaction>): Promise<ITransaction> => {
@@ -18,19 +18,16 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
         $or: [{ payer: userObjId }, { receiver: userObjId }],
     };
 
-    if (type && type !== 'ALL') {
-        if (type === 'BOOKINGS') query.type = 'BOOKING';
-        else if (type === 'PAYOUTS') query.type = 'PAYOUT';
-        else if (type === 'REFUNDS') query.type = 'REFUND';
+    if (type && type !== "ALL") {
+        if (type === "BOOKINGS") query.type = "BOOKING";
+        else if (type === "PAYOUTS") query.type = "PAYOUT";
+        else if (type === "REFUNDS") query.type = "REFUND";
     }
 
     if (searchTerm) {
         query.$and = [
             {
-                $or: [
-                    { title: { $regex: searchTerm, $options: 'i' } },
-                    { transactionId: { $regex: searchTerm, $options: 'i' } },
-                ],
+                $or: [{ title: { $regex: searchTerm, $options: "i" } }, { transactionId: { $regex: searchTerm, $options: "i" } }],
             },
         ];
     }
@@ -39,13 +36,7 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
     const limitNumber = Number(limit);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const transactions = await Transaction.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNumber)
-        .populate('payer', 'name email phone profileImage')
-        .populate('receiver', 'name email phone profileImage')
-        .populate('listing', 'title price images');
+    const transactions = await Transaction.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNumber).populate("payer", "name email phone profileImage").populate("receiver", "name email phone profileImage").populate("listing", "title price images");
 
     const total = await Transaction.countDocuments(query);
     const totalPages = Math.ceil(total / limitNumber);
@@ -62,12 +53,12 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
                 _id: null,
                 totalPaid: {
                     $sum: {
-                        $cond: [{ $eq: ['$payer', userObjId] }, '$amount', 0],
+                        $cond: [{ $eq: ["$payer", userObjId] }, "$amount", 0],
                     },
                 },
                 totalReceived: {
                     $sum: {
-                        $cond: [{ $eq: ['$receiver', userObjId] }, '$amount', 0],
+                        $cond: [{ $eq: ["$receiver", userObjId] }, "$amount", 0],
                     },
                 },
             },
@@ -100,30 +91,21 @@ const getAllTransactionsForAdmin = async (filters: ITransactionFilterOptions) =>
     const { searchTerm, type, page = 1, limit = 10 } = filters;
     const query: any = {};
 
-    if (type && type !== 'ALL') {
-        if (type === 'BOOKINGS') query.type = 'BOOKING';
-        else if (type === 'PAYOUTS') query.type = 'PAYOUT';
-        else if (type === 'REFUNDS') query.type = 'REFUND';
+    if (type && type !== "ALL") {
+        if (type === "BOOKINGS") query.type = "BOOKING";
+        else if (type === "PAYOUTS") query.type = "PAYOUT";
+        else if (type === "REFUNDS") query.type = "REFUND";
     }
 
     if (searchTerm) {
-        query.$or = [
-            { title: { $regex: searchTerm, $options: 'i' } },
-            { transactionId: { $regex: searchTerm, $options: 'i' } },
-        ];
+        query.$or = [{ title: { $regex: searchTerm, $options: "i" } }, { transactionId: { $regex: searchTerm, $options: "i" } }];
     }
 
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const transactions = await Transaction.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNumber)
-        .populate('payer', 'name email phone profileImage role')
-        .populate('receiver', 'name email phone profileImage role')
-        .populate('listing', 'title price images');
+    const transactions = await Transaction.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNumber).populate("payer", "name email phone profileImage role").populate("receiver", "name email phone profileImage role").populate("listing", "title price images");
 
     const total = await Transaction.countDocuments(query);
     const totalPages = Math.ceil(total / limitNumber);
@@ -135,17 +117,17 @@ const getAllTransactionsForAdmin = async (filters: ITransactionFilterOptions) =>
                 _id: null,
                 totalPaid: {
                     $sum: {
-                        $cond: [{ $eq: ['$type', 'BOOKING'] }, '$amount', 0],
+                        $cond: [{ $eq: ["$type", "BOOKING"] }, "$amount", 0],
                     },
                 },
                 totalRefunded: {
                     $sum: {
-                        $cond: [{ $eq: ['$type', 'REFUND'] }, '$amount', 0],
+                        $cond: [{ $eq: ["$type", "REFUND"] }, "$amount", 0],
                     },
                 },
                 totalPayouts: {
                     $sum: {
-                        $cond: [{ $eq: ['$type', 'PAYOUT'] }, '$amount', 0],
+                        $cond: [{ $eq: ["$type", "PAYOUT"] }, "$amount", 0],
                     },
                 },
             },
@@ -183,20 +165,14 @@ const getSingleTransaction = async (id: string, userId?: string) => {
         query.$or = [{ payer: userObjId }, { receiver: userObjId }];
     }
 
-    const transaction = await Transaction.findOne(query)
-        .populate('payer', 'name email phone profileImage')
-        .populate('receiver', 'name email phone profileImage')
-        .populate('listing', 'title price images location');
+    const transaction = await Transaction.findOne(query).populate("payer", "name email phone profileImage").populate("receiver", "name email phone profileImage").populate("listing", "title price images location");
 
     return transaction;
 };
 
 // SUPER_ADMIN: Get single transaction details by ID (unrestricted)
 const getSingleTransactionForAdmin = async (id: string) => {
-    const transaction = await Transaction.findById(id)
-        .populate('payer', 'name email phone profileImage role')
-        .populate('receiver', 'name email phone profileImage role')
-        .populate('listing', 'title price images location');
+    const transaction = await Transaction.findById(id).populate("payer", "name email phone profileImage role").populate("receiver", "name email phone profileImage role").populate("listing", "title price images location");
 
     return transaction;
 };
@@ -204,12 +180,12 @@ const getSingleTransactionForAdmin = async (id: string) => {
 // 1. User requests a Payout / Withdraw
 const requestPayout = async (userId: string, amount: number, remarks?: string) => {
     if (amount <= 0) {
-        throw new Error('Payout amount must be greater than zero');
+        throw new Error("Payout amount must be greater than zero");
     }
 
     const user = await UserModel.findById(userId);
     if (!user) {
-        throw new Error('User not found');
+        throw new Error("User not found");
     }
 
     const currentBalance = user.balance || 0;
@@ -225,11 +201,11 @@ const requestPayout = async (userId: string, amount: number, remarks?: string) =
     const payoutTx = await Transaction.create({
         receiver: new Types.ObjectId(userId),
         title: `Withdrawal / Payout Request of $${amount}`,
-        type: 'PAYOUT',
+        type: "PAYOUT",
         amount,
-        currency: 'usd',
-        status: 'PENDING',
-        remarks: remarks || 'User requested payout',
+        currency: "usd",
+        status: "PENDING",
+        remarks: remarks || "User requested payout",
     });
 
     return {
@@ -242,14 +218,14 @@ const requestPayout = async (userId: string, amount: number, remarks?: string) =
 const acceptPayout = async (transactionId: string) => {
     const transaction = await Transaction.findById(transactionId);
     if (!transaction) {
-        throw new Error('Transaction not found');
+        throw new Error("Transaction not found");
     }
 
-    if (transaction.type !== 'PAYOUT') {
-        throw new Error('Transaction is not a payout request');
+    if (transaction.type !== "PAYOUT") {
+        throw new Error("Transaction is not a payout request");
     }
 
-    if (transaction.status !== 'PENDING') {
+    if (transaction.status !== "PENDING") {
         throw new Error(`Payout request is already ${transaction.status}`);
     }
 
@@ -260,10 +236,10 @@ const acceptPayout = async (transactionId: string) => {
     const stripeResult = await StripeService.transferToConnectedAccount({
         amount: transaction.amount,
         stripeAccountId: user?.stripeAccountId,
-        currency: transaction.currency || 'usd',
+        currency: transaction.currency || "usd",
     });
 
-    transaction.status = 'PAID';
+    transaction.status = "PAID";
     transaction.stripeTransferId = stripeResult.transferId;
     await transaction.save();
 
@@ -274,19 +250,19 @@ const acceptPayout = async (transactionId: string) => {
 const rejectPayout = async (transactionId: string, reason?: string) => {
     const transaction = await Transaction.findById(transactionId);
     if (!transaction) {
-        throw new Error('Transaction not found');
+        throw new Error("Transaction not found");
     }
 
-    if (transaction.type !== 'PAYOUT') {
-        throw new Error('Transaction is not a payout request');
+    if (transaction.type !== "PAYOUT") {
+        throw new Error("Transaction is not a payout request");
     }
 
-    if (transaction.status !== 'PENDING') {
+    if (transaction.status !== "PENDING") {
         throw new Error(`Payout request is already ${transaction.status}`);
     }
 
     // Update status to REJECTED
-    transaction.status = 'REJECTED';
+    transaction.status = "REJECTED";
     if (reason) {
         transaction.remarks = reason;
     }
@@ -312,4 +288,3 @@ export const TransactionService = {
     acceptPayout,
     rejectPayout,
 };
-

@@ -1,11 +1,11 @@
-import Stripe from 'stripe';
-import config from '../../config';
-import { Transaction } from './transaction.model';
-import { UserModel } from '../auth/auth.model';
-import { Types } from 'mongoose';
+import Stripe from "stripe";
+import config from "../../config";
+import { Transaction } from "../transaction/transaction.model";
+import { UserModel } from "../auth/auth.model";
+import { Types } from "mongoose";
 
-const stripe = new Stripe(config.stripe.stripe_secret_key || '', {
-    apiVersion: '2025-02-24.acacia' as any,
+const stripe = new Stripe(config.stripe.stripe_secret_key || "", {
+    apiVersion: "2025-02-24.acacia" as any,
 });
 
 // Create Stripe PaymentIntent
@@ -14,11 +14,11 @@ const createPaymentIntent = async (payload: { amount: number; user: string; titl
 
     const paymentIntent = await stripe.paymentIntents.create({
         amount: amountInCents,
-        currency: 'usd',
+        currency: "usd",
         metadata: {
             userId: payload.user,
-            listingId: payload.listingId || '',
-            title: payload.title || 'Payment',
+            listingId: payload.listingId || "",
+            title: payload.title || "Payment",
         },
     });
 
@@ -32,15 +32,15 @@ const createPaymentIntent = async (payload: { amount: number; user: string; titl
 const processRefund = async (payload: { transactionId: string; amount?: number; reason?: string }) => {
     const transaction = await Transaction.findById(payload.transactionId);
     if (!transaction) {
-        throw new Error('Transaction not found');
+        throw new Error("Transaction not found");
     }
 
     if (!transaction.stripePaymentIntentId) {
-        throw new Error('No Stripe PaymentIntent ID associated with this transaction');
+        throw new Error("No Stripe PaymentIntent ID associated with this transaction");
     }
 
-    if (transaction.status === 'REFUNDED') {
-        throw new Error('Transaction has already been refunded');
+    if (transaction.status === "REFUNDED") {
+        throw new Error("Transaction has already been refunded");
     }
 
     const refundAmountInCents = payload.amount ? Math.round(payload.amount * 100) : undefined;
@@ -48,13 +48,13 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
     const refund = await stripe.refunds.create({
         payment_intent: transaction.stripePaymentIntentId,
         amount: refundAmountInCents,
-        reason: (payload.reason as any) || 'requested_by_customer',
+        reason: (payload.reason as any) || "requested_by_customer",
     });
 
     const refundAmount = refund.amount / 100;
     const previousStatus = transaction.status;
 
-    transaction.status = 'REFUNDED';
+    transaction.status = "REFUNDED";
     transaction.stripeRefundId = refund.id;
     if (payload.reason) {
         transaction.remarks = payload.reason;
@@ -62,7 +62,7 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
     await transaction.save();
 
     // Deduct refunded amount from receiver's (host's) balance if previously paid
-    if (previousStatus === 'PAID' && transaction.receiver) {
+    if (previousStatus === "PAID" && transaction.receiver) {
         await UserModel.findByIdAndUpdate(transaction.receiver, {
             $inc: { balance: -refundAmount },
         });
@@ -71,13 +71,13 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
     // Create a corresponding Refund transaction record
     const refundTransaction = await Transaction.create({
         payer: transaction.receiver || transaction.payer, // Receiver pays back
-        receiver: transaction.payer,                      // Customer gets money back
+        receiver: transaction.payer, // Customer gets money back
         listing: transaction.listing,
         title: `Refund for ${transaction.title}`,
-        type: 'REFUND',
+        type: "REFUND",
         amount: refundAmount,
         currency: transaction.currency,
-        status: 'REFUNDED',
+        status: "REFUNDED",
         stripePaymentIntentId: transaction.stripePaymentIntentId,
         stripeRefundId: refund.id,
         remarks: payload.reason,
@@ -92,14 +92,14 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
 // Create a Stripe Connect Custom/Express Account for user
 const createConnectAccount = async (userId: string, email: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error("User not found");
 
     if (user.stripeAccountId) {
         return { stripeAccountId: user.stripeAccountId };
     }
 
     const account = await stripe.accounts.create({
-        type: 'express',
+        type: "express",
         email,
         capabilities: {
             transfers: { requested: true },
@@ -115,7 +115,7 @@ const createConnectAccount = async (userId: string, email: string) => {
 // Create Stripe Connect Onboarding Account Link for user onboarding
 const createAccountLink = async (userId: string, returnUrl?: string, refreshUrl?: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error("User not found");
 
     let accountId = user.stripeAccountId;
     if (!accountId) {
@@ -127,7 +127,7 @@ const createAccountLink = async (userId: string, returnUrl?: string, refreshUrl?
         account: accountId,
         refresh_url: refreshUrl || `${config.server_url}/api/v1/transactions/stripe/reauth`,
         return_url: returnUrl || `${config.server_url}/api/v1/transactions/stripe/return`,
-        type: 'account_onboarding',
+        type: "account_onboarding",
     });
 
     return { url: accountLink.url };
@@ -142,17 +142,17 @@ const transferToConnectedAccount = async (payload: { amount: number; stripeAccou
         // Transfer funds directly to the user's connected Stripe Express/Custom account
         const transfer = await stripe.transfers.create({
             amount: amountInCents,
-            currency: payload.currency || 'usd',
+            currency: payload.currency || "usd",
             destination,
-            description: 'Payout withdrawal approved by admin',
+            description: "Payout withdrawal approved by admin",
         });
         return { transferId: transfer.id, transfer };
     } else {
         // Platform Payout (if single account mode)
         const payout = await stripe.payouts.create({
             amount: amountInCents,
-            currency: payload.currency || 'usd',
-            description: 'Payout withdrawal approved by admin',
+            currency: payload.currency || "usd",
+            description: "Payout withdrawal approved by admin",
         });
         return { transferId: payout.id, payout };
     }

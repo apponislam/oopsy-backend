@@ -3,8 +3,8 @@ import httpStatus from "http-status";
 import catchAsync from "../../../utils/catchAsync";
 import sendResponse from "../../../utils/sendResponse";
 import { TransactionService } from "./transaction.services";
-import { StripeService } from "./stripe.services";
-import { StripeWebhookService } from "./stripe.webhook";
+import { StripeService } from "../stripe/stripe.services";
+import { StripeWebhookService } from "../stripe/stripe.webhook";
 import config from "../../config";
 
 const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
@@ -234,4 +234,3 @@ export const TransactionController = {
     handleStripeReturn,
     handleStripeReauth,
 };
-
