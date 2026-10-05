@@ -6,6 +6,9 @@ import { ListingModel } from "../listing/listing.model";
 import { SettingModel } from "../setting/setting.model";
 import { Types } from "mongoose";
 
+import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiError";
+
 const stripe = new Stripe(config.stripe.stripe_secret_key || "", {
     apiVersion: "2025-02-24.acacia" as any,
 });
@@ -13,7 +16,7 @@ const stripe = new Stripe(config.stripe.stripe_secret_key || "", {
 const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
     const webhookSecret = config.stripe.stripe_webhook_secret;
     if (!webhookSecret) {
-        throw new Error("Stripe webhook secret is not configured.");
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Stripe webhook secret is not configured.");
     }
 
     let event: Stripe.Event;
@@ -21,7 +24,7 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
     try {
         event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
     } catch (err: any) {
-        throw new Error(`Webhook Signature Verification Failed: ${err.message}`);
+        throw new ApiError(httpStatus.BAD_REQUEST, `Webhook Signature Verification Failed: ${err.message}`);
     }
 
     switch (event.type) {

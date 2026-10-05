@@ -94,9 +94,22 @@ const loginUser = async (data: { email: string; password: string }) => {
     const accessToken = jwtHelper.generateToken(jwtPayload, config.jwt_access_secret as string, config.jwt_access_expire as string);
     const refreshToken = jwtHelper.generateToken(jwtPayload, config.jwt_refresh_secret as string, config.jwt_refresh_expire as string);
 
-    const { password, ...userWithoutPassword } = user.toObject();
+    const userObject = user.toObject();
+    const {
+        password,
+        verificationToken,
+        verificationCode,
+        verificationExpiry,
+        resetPasswordOtp,
+        resetPasswordOtpExpiry,
+        resetPasswordToken,
+        resetPasswordTokenExpiry,
+        emailVerificationToken,
+        emailVerificationExpiry,
+        ...userWithoutSensitive
+    } = userObject;
 
-    return { user: userWithoutPassword, accessToken, refreshToken };
+    return { user: userWithoutSensitive, accessToken, refreshToken };
 };
 
 const verifyEmail = async (email: string, token?: string, otp?: string) => {
