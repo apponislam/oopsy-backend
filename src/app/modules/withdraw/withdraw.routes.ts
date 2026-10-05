@@ -5,14 +5,16 @@ import authorize from '../../middlewares/authorized';
 
 const router = express.Router();
 
+// Admin Routes (SUPER_ADMIN)
+router.get('/admin', auth, authorize(['SUPER_ADMIN']), WithdrawController.getAllWithdrawalsForAdmin);
+router.patch('/:id/accept', auth, authorize(['SUPER_ADMIN']), WithdrawController.acceptPayout);
+router.patch('/:id/reject', auth, authorize(['SUPER_ADMIN']), WithdrawController.rejectPayout);
+
 // User Payout / Connect Routes
 router.post('/connect-account', auth, WithdrawController.createConnectAccount);
 router.post('/connect-onboarding', auth, WithdrawController.createAccountLink);
-router.post('/payout-request', auth, WithdrawController.requestPayout);
-
-// Admin Payout Approval / Rejection Routes
-router.patch('/payout/:id/accept', auth, authorize(['SUPER_ADMIN']), WithdrawController.acceptPayout);
-router.patch('/payout/:id/reject', auth, authorize(['SUPER_ADMIN']), WithdrawController.rejectPayout);
+router.post('/request', auth, WithdrawController.requestPayout);
+router.get('/history', auth, WithdrawController.getUserWithdrawals);
 
 // Stripe Redirect Routes (Onboarding Callbacks)
 router.get('/stripe/return', WithdrawController.handleStripeReturn);

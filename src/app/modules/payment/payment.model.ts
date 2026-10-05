@@ -1,9 +1,9 @@
 import mongoose, { Schema } from 'mongoose';
-import { ITransaction } from './transaction.interface';
+import { IPayment } from './payment.interface';
 
-const transactionSchema = new Schema<ITransaction>(
+const paymentSchema = new Schema<IPayment>(
     {
-        transactionId: {
+        paymentId: {
             type: String,
             required: true,
             unique: true,
@@ -24,9 +24,9 @@ const transactionSchema = new Schema<ITransaction>(
             type: Schema.Types.ObjectId,
             ref: 'Booking',
         },
-        bookingTransaction: {
+        bookingPayment: {
             type: Schema.Types.ObjectId,
-            ref: 'Transaction',
+            ref: 'Payment',
         },
         title: {
             type: String,
@@ -34,7 +34,7 @@ const transactionSchema = new Schema<ITransaction>(
         },
         type: {
             type: String,
-            enum: ['BOOKING', 'PAYOUT', 'REFUND', 'PLATFORM_FEE'],
+            enum: ['BOOKING', 'REFUND', 'PLATFORM_FEE'],
             required: true,
         },
         amount: {
@@ -47,16 +47,13 @@ const transactionSchema = new Schema<ITransaction>(
         },
         status: {
             type: String,
-            enum: ['PAID', 'PENDING', 'REFUNDED', 'FAILED', 'REJECTED'],
+            enum: ['PAID', 'PENDING', 'REFUNDED', 'FAILED'],
             default: 'PENDING',
         },
         stripePaymentIntentId: {
             type: String,
         },
         stripeRefundId: {
-            type: String,
-        },
-        stripeTransferId: {
             type: String,
         },
         platformFeePercentage: {
@@ -80,30 +77,30 @@ const transactionSchema = new Schema<ITransaction>(
     }
 );
 
-transactionSchema.pre('validate', async function () {
-    if (!this.transactionId) {
+paymentSchema.pre('validate', async function () {
+    if (!this.paymentId) {
         let isUnique = false;
         let candidateId = '';
 
         while (!isUnique) {
-            const count = await mongoose.model('Transaction').countDocuments();
+            const count = await mongoose.model('Payment').countDocuments();
             const nextNum = (count + 1).toString().padStart(8, '0');
-            candidateId = `T-${nextNum}`;
+            candidateId = `P-${nextNum}`;
 
-            const existingDoc = await mongoose.model('Transaction').findOne({ transactionId: candidateId });
+            const existingDoc = await mongoose.model('Payment').findOne({ paymentId: candidateId });
             if (!existingDoc) {
                 isUnique = true;
             } else {
                 const randomOffset = Math.floor(Math.random() * 1000) + 1;
-                candidateId = `T-${(count + 1 + randomOffset).toString().padStart(8, '0')}`;
-                const recheckDoc = await mongoose.model('Transaction').findOne({ transactionId: candidateId });
+                candidateId = `P-${(count + 1 + randomOffset).toString().padStart(8, '0')}`;
+                const recheckDoc = await mongoose.model('Payment').findOne({ paymentId: candidateId });
                 if (!recheckDoc) {
                     isUnique = true;
                 }
             }
         }
-        this.transactionId = candidateId;
+        this.paymentId = candidateId;
     }
 });
 
-export const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema);
+export const Payment = mongoose.model<IPayment>('Payment', paymentSchema);

@@ -1,24 +1,23 @@
 import { Types } from "mongoose";
 
-export type TransactionType = "BOOKING" | "PAYOUT" | "REFUND" | "PLATFORM_FEE";
-export type TransactionStatus = "PAID" | "PENDING" | "REFUNDED" | "FAILED" | "REJECTED";
+export type PaymentType = "BOOKING" | "REFUND" | "PLATFORM_FEE";
+export type PaymentStatus = "PAID" | "PENDING" | "REFUNDED" | "FAILED";
 
-export interface ITransaction {
+export interface IPayment {
     _id?: Types.ObjectId;
-    transactionId: string;
+    paymentId: string;
     payer?: Types.ObjectId;
     receiver?: Types.ObjectId;
     listing?: Types.ObjectId;
     booking?: Types.ObjectId;             // Ref to Booking
-    bookingTransaction?: Types.ObjectId;  // Ref to the original BOOKING Transaction (for PAYOUT or REFUND)
+    bookingPayment?: Types.ObjectId;      // Ref to the original BOOKING Payment (for REFUND)
     title: string;
-    type: TransactionType;
+    type: PaymentType;
     amount: number;
     currency: string;
-    status: TransactionStatus;
+    status: PaymentStatus;
     stripePaymentIntentId?: string;
     stripeRefundId?: string;
-    stripeTransferId?: string;
     platformFeePercentage?: number;  // Platform fee percentage (e.g. 10 for 10%)
     platformFeeAmount?: number;      // Calculated platform fee amount in money
     isFeeSettled?: boolean;          // Whether the platform fee has been paid/settled
@@ -27,9 +26,9 @@ export interface ITransaction {
     updatedAt?: Date;
 }
 
-export interface ITransactionFilterOptions {
+export interface IPaymentFilterOptions {
     searchTerm?: string;
-    type?: "ALL" | "BOOKINGS" | "PAYOUTS" | "REFUNDS";
+    type?: "ALL" | "BOOKINGS" | "REFUNDS";
     page?: number;
     limit?: number;
 }

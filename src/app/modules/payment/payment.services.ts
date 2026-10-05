@@ -1,17 +1,15 @@
-import { Transaction } from "./transaction.model";
-import { ITransaction, ITransactionFilterOptions } from "./transaction.interface";
+import { Payment } from "./payment.model";
+import { IPayment, IPaymentFilterOptions } from "./payment.interface";
 import { Types } from "mongoose";
-import { UserModel } from "../auth/auth.model";
-import { StripeService } from "../stripe/stripe.services";
 
-// Create a new transaction manually
-const createTransaction = async (payload: Partial<ITransaction>): Promise<ITransaction> => {
-    const newTransaction = await Transaction.create(payload);
-    return newTransaction;
+// Create a new payment record
+const createPayment = async (payload: Partial<IPayment>): Promise<IPayment> => {
+    const newPayment = await Payment.create(payload);
+    return newPayment;
 };
 
-// Get transaction history for a user (as payer or receiver) with filters & search
-const getTransactionHistory = async (userId: string, filters: ITransactionFilterOptions) => {
+// Get payment history for a user (as payer or receiver) with filters & search
+const getPaymentHistory = async (userId: string, filters: IPaymentFilterOptions) => {
     const { searchTerm, type, page = 1, limit = 10 } = filters;
     const userObjId = new Types.ObjectId(userId);
     const query: any = {
@@ -20,14 +18,13 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
 
     if (type && type !== "ALL") {
         if (type === "BOOKINGS") query.type = "BOOKING";
-        else if (type === "PAYOUTS") query.type = "PAYOUT";
         else if (type === "REFUNDS") query.type = "REFUND";
     }
 
     if (searchTerm) {
         query.$and = [
             {
-                $or: [{ title: { $regex: searchTerm, $options: "i" } }, { transactionId: { $regex: searchTerm, $options: "i" } }],
+                $or: [{ title: { $regex: searchTerm, $options: "i" } }, { paymentId: { $regex: searchTerm, $options: "i" } }],
             },
         ];
     }
@@ -36,13 +33,19 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
     const limitNumber = Number(limit);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const transactions = await Transaction.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNumber).populate("payer", "name email phone profileImage").populate("receiver", "name email phone profileImage").populate("listing", "title price images");
+    const payments = await Payment.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNumber)
+        .populate("payer", "name email phone profileImage")
+        .populate("receiver", "name email phone profileImage")
+        .populate("listing", "title price images");
 
-    const total = await Transaction.countDocuments(query);
+    const total = await Payment.countDocuments(query);
     const totalPages = Math.ceil(total / limitNumber);
 
-    // Calculate aggregated transaction metrics for user (Received, Paid, Net)
-    const metricsAggregate = await Transaction.aggregate([
+    // Calculate aggregated metrics for user (Received, Paid, Net)
+    const metricsAggregate = await Payment.aggregate([
         {
             $match: {
                 $or: [{ payer: userObjId }, { receiver: userObjId }],
@@ -82,36 +85,41 @@ const getTransactionHistory = async (userId: string, filters: ITransactionFilter
             hasNext: pageNumber < totalPages,
             hasPrev: pageNumber > 1,
         },
-        data: transactions,
+        data: payments,
     };
 };
 
-// SUPER_ADMIN: Get all transactions across the platform
-const getAllTransactionsForAdmin = async (filters: ITransactionFilterOptions) => {
+// SUPER_ADMIN: Get all payments across the platform
+const getAllPaymentsForAdmin = async (filters: IPaymentFilterOptions) => {
     const { searchTerm, type, page = 1, limit = 10 } = filters;
     const query: any = {};
 
     if (type && type !== "ALL") {
         if (type === "BOOKINGS") query.type = "BOOKING";
-        else if (type === "PAYOUTS") query.type = "PAYOUT";
         else if (type === "REFUNDS") query.type = "REFUND";
     }
 
     if (searchTerm) {
-        query.$or = [{ title: { $regex: searchTerm, $options: "i" } }, { transactionId: { $regex: searchTerm, $options: "i" } }];
+        query.$or = [{ title: { $regex: searchTerm, $options: "i" } }, { paymentId: { $regex: searchTerm, $options: "i" } }];
     }
 
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
     const skip = (pageNumber - 1) * limitNumber;
 
-    const transactions = await Transaction.find(query).sort({ createdAt: -1 }).skip(skip).limit(limitNumber).populate("payer", "name email phone profileImage role").populate("receiver", "name email phone profileImage role").populate("listing", "title price images");
+    const payments = await Payment.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNumber)
+        .populate("payer", "name email phone profileImage role")
+        .populate("receiver", "name email phone profileImage role")
+        .populate("listing", "title price images");
 
-    const total = await Transaction.countDocuments(query);
+    const total = await Payment.countDocuments(query);
     const totalPages = Math.ceil(total / limitNumber);
 
     // Calculate system-wide aggregated metrics
-    const metricsAggregate = await Transaction.aggregate([
+    const metricsAggregate = await Payment.aggregate([
         {
             $group: {
                 _id: null,
@@ -125,25 +133,18 @@ const getAllTransactionsForAdmin = async (filters: ITransactionFilterOptions) =>
                         $cond: [{ $eq: ["$type", "REFUND"] }, "$amount", 0],
                     },
                 },
-                totalPayouts: {
-                    $sum: {
-                        $cond: [{ $eq: ["$type", "PAYOUT"] }, "$amount", 0],
-                    },
-                },
             },
         },
     ]);
 
     const totalPaid = metricsAggregate[0]?.totalPaid || 0;
     const totalRefunded = metricsAggregate[0]?.totalRefunded || 0;
-    const totalPayouts = metricsAggregate[0]?.totalPayouts || 0;
 
     return {
         summary: {
             totalPaid,
             totalRefunded,
-            totalPayouts,
-            net: totalPaid - totalRefunded - totalPayouts,
+            net: totalPaid - totalRefunded,
         },
         meta: {
             page: pageNumber,
@@ -153,34 +154,40 @@ const getAllTransactionsForAdmin = async (filters: ITransactionFilterOptions) =>
             hasNext: pageNumber < totalPages,
             hasPrev: pageNumber > 1,
         },
-        data: transactions,
+        data: payments,
     };
 };
 
-// Get single transaction details by ID
-const getSingleTransaction = async (id: string, userId?: string) => {
+// Get single payment details by ID
+const getSinglePayment = async (id: string, userId?: string) => {
     const query: any = { _id: id };
     if (userId) {
         const userObjId = new Types.ObjectId(userId);
         query.$or = [{ payer: userObjId }, { receiver: userObjId }];
     }
 
-    const transaction = await Transaction.findOne(query).populate("payer", "name email phone profileImage").populate("receiver", "name email phone profileImage").populate("listing", "title price images location");
+    const payment = await Payment.findOne(query)
+        .populate("payer", "name email phone profileImage")
+        .populate("receiver", "name email phone profileImage")
+        .populate("listing", "title price images location");
 
-    return transaction;
+    return payment;
 };
 
-// SUPER_ADMIN: Get single transaction details by ID (unrestricted)
-const getSingleTransactionForAdmin = async (id: string) => {
-    const transaction = await Transaction.findById(id).populate("payer", "name email phone profileImage role").populate("receiver", "name email phone profileImage role").populate("listing", "title price images location");
+// SUPER_ADMIN: Get single payment details by ID (unrestricted)
+const getSinglePaymentForAdmin = async (id: string) => {
+    const payment = await Payment.findById(id)
+        .populate("payer", "name email phone profileImage role")
+        .populate("receiver", "name email phone profileImage role")
+        .populate("listing", "title price images location");
 
-    return transaction;
+    return payment;
 };
 
-export const TransactionService = {
-    createTransaction,
-    getTransactionHistory,
-    getAllTransactionsForAdmin,
-    getSingleTransaction,
-    getSingleTransactionForAdmin,
+export const PaymentService = {
+    createPayment,
+    getPaymentHistory,
+    getAllPaymentsForAdmin,
+    getSinglePayment,
+    getSinglePaymentForAdmin,
 };

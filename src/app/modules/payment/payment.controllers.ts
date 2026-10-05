@@ -2,10 +2,9 @@ import { Request, Response } from "express";
 import httpStatus from "http-status";
 import catchAsync from "../../../utils/catchAsync";
 import sendResponse from "../../../utils/sendResponse";
-import { TransactionService } from "./transaction.services";
+import { PaymentService } from "./payment.services";
 import { StripeService } from "../stripe/stripe.services";
 import { StripeWebhookService } from "../stripe/stripe.webhook";
-import config from "../../config";
 
 const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user._id;
@@ -55,9 +54,9 @@ const handleStripeWebhook = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-const createTransaction = catchAsync(async (req: Request, res: Response) => {
+const createPayment = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user._id;
-    const result = await TransactionService.createTransaction({
+    const result = await PaymentService.createPayment({
         payer: userId,
         ...req.body,
     });
@@ -65,16 +64,16 @@ const createTransaction = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: "Transaction created successfully",
+        message: "Payment created successfully",
         data: result,
     });
 });
 
-const getTransactionHistory = catchAsync(async (req: Request, res: Response) => {
+const getPaymentHistory = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user._id;
     const { searchTerm, type, page, limit } = req.query;
 
-    const result = await TransactionService.getTransactionHistory(userId, {
+    const result = await PaymentService.getPaymentHistory(userId, {
         searchTerm: searchTerm as string,
         type: type as any,
         page: page ? Number(page) : 1,
@@ -84,32 +83,32 @@ const getTransactionHistory = catchAsync(async (req: Request, res: Response) => 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Transaction history fetched successfully",
+        message: "Payment history fetched successfully",
         stats: result.summary,
         meta: result.meta,
         data: result.data,
     });
 });
 
-const getSingleTransaction = catchAsync(async (req: Request, res: Response) => {
+const getSinglePayment = catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const userId = (req as any).user._id;
 
-    const result = await TransactionService.getSingleTransaction(id, userId);
+    const result = await PaymentService.getSinglePayment(id, userId);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Transaction details fetched successfully",
+        message: "Payment details fetched successfully",
         data: result,
     });
 });
 
-// SUPER_ADMIN: Get all platform transactions
-const getAllTransactionsForAdmin = catchAsync(async (req: Request, res: Response) => {
+// SUPER_ADMIN: Get all platform payments
+const getAllPaymentsForAdmin = catchAsync(async (req: Request, res: Response) => {
     const { searchTerm, type, page, limit } = req.query;
 
-    const result = await TransactionService.getAllTransactionsForAdmin({
+    const result = await PaymentService.getAllPaymentsForAdmin({
         searchTerm: searchTerm as string,
         type: type as any,
         page: page ? Number(page) : 1,
@@ -119,34 +118,34 @@ const getAllTransactionsForAdmin = catchAsync(async (req: Request, res: Response
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Admin all transactions fetched successfully",
+        message: "Admin all payments fetched successfully",
         stats: result.summary,
         meta: result.meta,
         data: result.data,
     });
 });
 
-// SUPER_ADMIN: Get single transaction details
-const getSingleTransactionForAdmin = catchAsync(async (req: Request, res: Response) => {
+// SUPER_ADMIN: Get single payment details
+const getSinglePaymentForAdmin = catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id as string;
 
-    const result = await TransactionService.getSingleTransactionForAdmin(id);
+    const result = await PaymentService.getSinglePaymentForAdmin(id);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "Admin transaction details fetched successfully",
+        message: "Admin payment details fetched successfully",
         data: result,
     });
 });
 
-export const TransactionController = {
+export const PaymentController = {
     createPaymentIntent,
     processRefund,
     handleStripeWebhook,
-    createTransaction,
-    getTransactionHistory,
-    getSingleTransaction,
-    getAllTransactionsForAdmin,
-    getSingleTransactionForAdmin,
+    createPayment,
+    getPaymentHistory,
+    getSinglePayment,
+    getAllPaymentsForAdmin,
+    getSinglePaymentForAdmin,
 };

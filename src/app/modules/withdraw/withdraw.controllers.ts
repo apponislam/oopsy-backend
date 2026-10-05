@@ -73,6 +73,45 @@ const rejectPayout = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getUserWithdrawals = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user._id;
+    const { searchTerm, status, page, limit } = req.query;
+
+    const result = await WithdrawService.getUserWithdrawals(userId, {
+        searchTerm: searchTerm as string,
+        status: status as any,
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 10,
+    });
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "User withdrawals fetched successfully",
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
+const getAllWithdrawalsForAdmin = catchAsync(async (req: Request, res: Response) => {
+    const { searchTerm, status, page, limit } = req.query;
+
+    const result = await WithdrawService.getAllWithdrawalsForAdmin({
+        searchTerm: searchTerm as string,
+        status: status as any,
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 10,
+    });
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Admin withdrawals fetched successfully",
+        meta: result.meta,
+        data: result.data,
+    });
+});
+
 const handleStripeReturn = catchAsync(async (req: Request, res: Response) => {
     res.redirect("oopsy://withdraw/onboarding-complete");
 });
@@ -87,6 +126,8 @@ export const WithdrawController = {
     requestPayout,
     acceptPayout,
     rejectPayout,
+    getUserWithdrawals,
+    getAllWithdrawalsForAdmin,
     handleStripeReturn,
     handleStripeReauth,
 };

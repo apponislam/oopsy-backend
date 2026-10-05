@@ -8,7 +8,7 @@ import router from "./app/routes";
 
 const app: Application = express();
 
-app.use("/api/v1/transactions/webhook", express.raw({ type: "application/json" }));
+app.use("/api/v1/payments/webhook", express.raw({ type: "application/json" }));
 
 const corsOptions = {
     origin: ["http://localhost:3030", "http://10.10.7.24:3030", "http://fundraising.apponislam.top", "https://fundraising.apponislam.top", "http://10.10.26.171:3030"],

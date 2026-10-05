@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import config from "../../config";
-import { Transaction } from "../transaction/transaction.model";
+import { Payment } from "../payment/payment.model";
 import { UserModel } from "../auth/auth.model";
 import { ListingModel } from "../listing/listing.model";
 import { SettingModel } from "../setting/setting.model";
@@ -30,7 +30,7 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
             const { userId, listingId, title } = paymentIntent.metadata || {};
 
             if (userId) {
-                const existingTx = await Transaction.findOne({ stripePaymentIntentId: paymentIntent.id });
+                const existingPayment = await Payment.findOne({ stripePaymentIntentId: paymentIntent.id });
 
                 let receiverId: Types.ObjectId | undefined;
                 if (listingId) {
@@ -51,8 +51,8 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
                 const platformFeeAmount = (amountPaid * feePercentage) / 100;
                 const netAmountForHost = amountPaid - platformFeeAmount;
 
-                if (!existingTx) {
-                    await Transaction.create({
+                if (!existingPayment) {
+                    await Payment.create({
                         payer: new Types.ObjectId(userId),
                         receiver: receiverId,
                         listing: listingId ? new Types.ObjectId(listingId) : undefined,
@@ -66,12 +66,12 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
                         isFeeSettled: true,
                     });
                 } else {
-                    existingTx.status = "PAID";
-                    if (receiverId) existingTx.receiver = receiverId;
-                    existingTx.platformFeePercentage = feePercentage;
-                    existingTx.platformFeeAmount = platformFeeAmount;
-                    existingTx.isFeeSettled = true;
-                    await existingTx.save();
+                    existingPayment.status = "PAID";
+                    if (receiverId) existingPayment.receiver = receiverId;
+                    existingPayment.platformFeePercentage = feePercentage;
+                    existingPayment.platformFeeAmount = platformFeeAmount;
+                    existingPayment.isFeeSettled = true;
+                    await existingPayment.save();
                 }
 
                 // Automatically credit receiver's (host's) net balance (amount minus platform fee)
@@ -86,10 +86,10 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
 
         case "payment_intent.payment_failed": {
             const paymentIntent = event.data.object as Stripe.PaymentIntent;
-            const existingTx = await Transaction.findOne({ stripePaymentIntentId: paymentIntent.id });
-            if (existingTx) {
-                existingTx.status = "FAILED";
-                await existingTx.save();
+            const existingPayment = await Payment.findOne({ stripePaymentIntentId: paymentIntent.id });
+            if (existingPayment) {
+                existingPayment.status = "FAILED";
+                await existingPayment.save();
             }
             break;
         }
@@ -99,65 +99,18 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
             if (charge.payment_intent) {
                 const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent.id;
 
-                const existingTx = await Transaction.findOne({ stripePaymentIntentId: paymentIntentId });
-                if (existingTx) {
-                    const wasPaid = existingTx.status === "PAID";
-                    existingTx.status = "REFUNDED";
-                    await existingTx.save();
+                const existingPayment = await Payment.findOne({ stripePaymentIntentId: paymentIntentId });
+                if (existingPayment) {
+                    const wasPaid = existingPayment.status === "PAID";
+                    existingPayment.status = "REFUNDED";
+                    await existingPayment.save();
 
                     // Deduct from receiver's balance if it was credited previously
-                    if (wasPaid && existingTx.receiver) {
-                        await UserModel.findByIdAndUpdate(existingTx.receiver, {
-                            $inc: { balance: -existingTx.amount },
+                    if (wasPaid && existingPayment.receiver) {
+                        await UserModel.findByIdAndUpdate(existingPayment.receiver, {
+                            $inc: { balance: -existingPayment.amount },
                         });
                     }
-                }
-            }
-            break;
-        }
-
-        case "transfer.created": {
-            const transfer = event.data.object as Stripe.Transfer;
-            console.log(`Stripe Transfer created: ${transfer.id} of amount ${transfer.amount / 100}`);
-            break;
-        }
-
-        case "transfer.reversed": {
-            const transfer = event.data.object as Stripe.Transfer;
-            const existingTx = await Transaction.findOne({ stripeTransferId: transfer.id });
-            if (existingTx) {
-                existingTx.status = "FAILED";
-                existingTx.remarks = "Stripe transfer reversed";
-                await existingTx.save();
-
-                // Re-credit the user balance if transfer was reversed/failed
-                if (existingTx.payer) {
-                    await UserModel.findByIdAndUpdate(existingTx.payer, {
-                        $inc: { balance: existingTx.amount },
-                    });
-                }
-            }
-            break;
-        }
-
-        case "payout.paid": {
-            const payout = event.data.object as Stripe.Payout;
-            console.log(`Stripe Payout succeeded: ${payout.id} of amount ${payout.amount / 100}`);
-            break;
-        }
-
-        case "payout.failed": {
-            const payout = event.data.object as Stripe.Payout;
-            const existingTx = await Transaction.findOne({ stripeTransferId: payout.id });
-            if (existingTx) {
-                existingTx.status = "FAILED";
-                existingTx.remarks = payout.failure_message || "Stripe payout failed";
-                await existingTx.save();
-
-                if (existingTx.payer) {
-                    await UserModel.findByIdAndUpdate(existingTx.payer, {
-                        $inc: { balance: existingTx.amount },
-                    });
                 }
             }
             break;

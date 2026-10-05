@@ -6,7 +6,7 @@ import { settingRoutes } from "../modules/setting/setting.routes";
 import { listingRoutes } from "../modules/listing/listing.routes";
 import { reviewRoutes } from "../modules/review/review.routes";
 import { notificationRoutes } from "../modules/notification/notification.routes";
-import { TransactionRoutes } from "../modules/transaction/transaction.routes";
+import { paymentRoutes } from "../modules/payment/payment.routes";
 import { faqRoutes } from "../modules/faq/faq.routes";
 import { bookingRoutes } from "../modules/booking/booking.routes";
 import { withdrawRoutes } from "../modules/withdraw/withdraw.routes";
@@ -47,8 +47,8 @@ const moduleRoutes = [
         route: notificationRoutes,
     },
     {
-        path: "/transactions",
-        route: TransactionRoutes,
+        path: "/payments",
+        route: paymentRoutes,
     },
     {
         path: "/withdraw",
