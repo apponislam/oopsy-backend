@@ -1,6 +1,5 @@
 import { Types } from "mongoose";
 
-export type PaymentType = "BOOKING" | "REFUND" | "PLATFORM_FEE";
 export type PaymentStatus = "PAID" | "PENDING" | "REFUNDED" | "FAILED";
 
 export interface IPayment {
@@ -10,9 +9,7 @@ export interface IPayment {
     receiver?: Types.ObjectId;
     listing?: Types.ObjectId;
     booking?: Types.ObjectId;             // Ref to Booking
-    bookingPayment?: Types.ObjectId;      // Ref to the original BOOKING Payment (for REFUND)
     title: string;
-    type: PaymentType;
     amount: number;
     currency: string;
     status: PaymentStatus;
@@ -28,7 +25,7 @@ export interface IPayment {
 
 export interface IPaymentFilterOptions {
     searchTerm?: string;
-    type?: "ALL" | "BOOKINGS" | "REFUNDS";
+    status?: "ALL" | PaymentStatus;
     page?: number;
     limit?: number;
 }

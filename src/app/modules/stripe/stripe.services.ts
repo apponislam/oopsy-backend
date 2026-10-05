@@ -1,5 +1,7 @@
 import Stripe from "stripe";
+import httpStatus from "http-status";
 import config from "../../config";
+import ApiError from "../../../errors/ApiError";
 import { Payment } from "../payment/payment.model";
 import { UserModel } from "../auth/auth.model";
 
@@ -31,15 +33,15 @@ const createPaymentIntent = async (payload: { amount: number; user: string; titl
 const processRefund = async (payload: { transactionId: string; amount?: number; reason?: string }) => {
     const payment = await Payment.findById(payload.transactionId);
     if (!payment) {
-        throw new Error("Payment record not found");
+        throw new ApiError(httpStatus.NOT_FOUND, "Payment record not found");
     }
 
     if (!payment.stripePaymentIntentId) {
-        throw new Error("No Stripe PaymentIntent ID associated with this payment");
+        throw new ApiError(httpStatus.BAD_REQUEST, "No Stripe PaymentIntent ID associated with this payment");
     }
 
     if (payment.status === "REFUNDED") {
-        throw new Error("Payment has already been refunded");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Payment has already been refunded");
     }
 
     const refundAmountInCents = payload.amount ? Math.round(payload.amount * 100) : undefined;
@@ -73,9 +75,7 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
         receiver: payment.payer, // Customer gets money back
         listing: payment.listing,
         booking: payment.booking,
-        bookingPayment: payment._id,
         title: `Refund for ${payment.title}`,
-        type: "REFUND",
         amount: refundAmount,
         currency: payment.currency,
         status: "REFUNDED",
@@ -93,7 +93,7 @@ const processRefund = async (payload: { transactionId: string; amount?: number; 
 // Create a Stripe Connect Custom/Express Account for user
 const createConnectAccount = async (userId: string, email: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new Error("User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
 
     if (user.stripeAccountId) {
         return { stripeAccountId: user.stripeAccountId };
@@ -116,7 +116,7 @@ const createConnectAccount = async (userId: string, email: string) => {
 // Create Stripe Connect Onboarding Account Link for user onboarding
 const createAccountLink = async (userId: string, returnUrl?: string, refreshUrl?: string) => {
     const user = await UserModel.findById(userId);
-    if (!user) throw new Error("User not found");
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
 
     let accountId = user.stripeAccountId;
     if (!accountId) {

@@ -57,7 +57,6 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
                         receiver: receiverId,
                         listing: listingId ? new Types.ObjectId(listingId) : undefined,
                         title: title || "Stripe Payment",
-                        type: "BOOKING",
                         amount: amountPaid,
                         status: "PAID",
                         stripePaymentIntentId: paymentIntent.id,

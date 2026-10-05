@@ -71,11 +71,11 @@ const createPayment = catchAsync(async (req: Request, res: Response) => {
 
 const getPaymentHistory = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user._id;
-    const { searchTerm, type, page, limit } = req.query;
+    const { searchTerm, status, page, limit } = req.query;
 
     const result = await PaymentService.getPaymentHistory(userId, {
         searchTerm: searchTerm as string,
-        type: type as any,
+        status: status as any,
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10,
     });
@@ -106,11 +106,11 @@ const getSinglePayment = catchAsync(async (req: Request, res: Response) => {
 
 // SUPER_ADMIN: Get all platform payments
 const getAllPaymentsForAdmin = catchAsync(async (req: Request, res: Response) => {
-    const { searchTerm, type, page, limit } = req.query;
+    const { searchTerm, status, page, limit } = req.query;
 
     const result = await PaymentService.getAllPaymentsForAdmin({
         searchTerm: searchTerm as string,
-        type: type as any,
+        status: status as any,
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10,
     });

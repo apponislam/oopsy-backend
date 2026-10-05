@@ -10,15 +10,14 @@ const createPayment = async (payload: Partial<IPayment>): Promise<IPayment> => {
 
 // Get payment history for a user (as payer or receiver) with filters & search
 const getPaymentHistory = async (userId: string, filters: IPaymentFilterOptions) => {
-    const { searchTerm, type, page = 1, limit = 10 } = filters;
+    const { searchTerm, status, page = 1, limit = 10 } = filters;
     const userObjId = new Types.ObjectId(userId);
     const query: any = {
         $or: [{ payer: userObjId }, { receiver: userObjId }],
     };
 
-    if (type && type !== "ALL") {
-        if (type === "BOOKINGS") query.type = "BOOKING";
-        else if (type === "REFUNDS") query.type = "REFUND";
+    if (status && status !== "ALL") {
+        query.status = status;
     }
 
     if (searchTerm) {
@@ -91,12 +90,11 @@ const getPaymentHistory = async (userId: string, filters: IPaymentFilterOptions)
 
 // SUPER_ADMIN: Get all payments across the platform
 const getAllPaymentsForAdmin = async (filters: IPaymentFilterOptions) => {
-    const { searchTerm, type, page = 1, limit = 10 } = filters;
+    const { searchTerm, status, page = 1, limit = 10 } = filters;
     const query: any = {};
 
-    if (type && type !== "ALL") {
-        if (type === "BOOKINGS") query.type = "BOOKING";
-        else if (type === "REFUNDS") query.type = "REFUND";
+    if (status && status !== "ALL") {
+        query.status = status;
     }
 
     if (searchTerm) {
@@ -125,12 +123,12 @@ const getAllPaymentsForAdmin = async (filters: IPaymentFilterOptions) => {
                 _id: null,
                 totalPaid: {
                     $sum: {
-                        $cond: [{ $eq: ["$type", "BOOKING"] }, "$amount", 0],
+                        $cond: [{ $eq: ["$status", "PAID"] }, "$amount", 0],
                     },
                 },
                 totalRefunded: {
                     $sum: {
-                        $cond: [{ $eq: ["$type", "REFUND"] }, "$amount", 0],
+                        $cond: [{ $eq: ["$status", "REFUNDED"] }, "$amount", 0],
                     },
                 },
             },

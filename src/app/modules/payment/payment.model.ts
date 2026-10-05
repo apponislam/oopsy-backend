@@ -24,17 +24,8 @@ const paymentSchema = new Schema<IPayment>(
             type: Schema.Types.ObjectId,
             ref: 'Booking',
         },
-        bookingPayment: {
-            type: Schema.Types.ObjectId,
-            ref: 'Payment',
-        },
         title: {
             type: String,
-            required: true,
-        },
-        type: {
-            type: String,
-            enum: ['BOOKING', 'REFUND', 'PLATFORM_FEE'],
             required: true,
         },
         amount: {

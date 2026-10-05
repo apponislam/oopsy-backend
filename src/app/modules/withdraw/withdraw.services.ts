@@ -1,3 +1,5 @@
+import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiError";
 import { StripeService } from "../stripe/stripe.services";
 import { UserModel } from "../auth/auth.model";
 import { Withdraw } from "./withdraw.model";
@@ -13,17 +15,17 @@ const createAccountLink = async (userId: string, returnUrl?: string, refreshUrl?
 
 const requestPayout = async (userId: string, amount: number, remarks?: string) => {
     if (amount <= 0) {
-        throw new Error("Payout amount must be greater than zero");
+        throw new ApiError(httpStatus.BAD_REQUEST, "Payout amount must be greater than zero");
     }
 
     const user = await UserModel.findById(userId);
     if (!user) {
-        throw new Error("User not found");
+        throw new ApiError(httpStatus.NOT_FOUND, "User not found");
     }
 
     const currentBalance = user.balance || 0;
     if (currentBalance < amount) {
-        throw new Error(`Insufficient balance. Current balance is $${currentBalance}`);
+        throw new ApiError(httpStatus.BAD_REQUEST, `Insufficient balance. Current balance is $${currentBalance}`);
     }
 
     // Deduct user balance upfront to hold funds
@@ -49,21 +51,21 @@ const requestPayout = async (userId: string, amount: number, remarks?: string) =
 const acceptPayout = async (withdrawId: string) => {
     const withdrawDoc = await Withdraw.findById(withdrawId);
     if (!withdrawDoc) {
-        throw new Error("Withdraw request not found");
+        throw new ApiError(httpStatus.NOT_FOUND, "Withdraw request not found");
     }
 
     if (withdrawDoc.status !== "PENDING") {
-        throw new Error(`Withdraw request is already ${withdrawDoc.status}`);
+        throw new ApiError(httpStatus.BAD_REQUEST, `Withdraw request is already ${withdrawDoc.status}`);
     }
 
     const user = await UserModel.findById(withdrawDoc.user);
     if (!user) {
-        throw new Error("User not found");
+        throw new ApiError(httpStatus.NOT_FOUND, "User not found");
     }
 
     const stripeAccountId = withdrawDoc.stripeAccountId || user.stripeAccountId;
     if (!stripeAccountId) {
-        throw new Error("User does not have a connected Stripe account");
+        throw new ApiError(httpStatus.BAD_REQUEST, "User does not have a connected Stripe account");
     }
 
     const stripeResult = await StripeService.transferToConnectedAccount({
@@ -82,11 +84,11 @@ const acceptPayout = async (withdrawId: string) => {
 const rejectPayout = async (withdrawId: string, reason?: string) => {
     const withdrawDoc = await Withdraw.findById(withdrawId);
     if (!withdrawDoc) {
-        throw new Error("Withdraw request not found");
+        throw new ApiError(httpStatus.NOT_FOUND, "Withdraw request not found");
     }
 
     if (withdrawDoc.status !== "PENDING") {
-        throw new Error(`Withdraw request is already ${withdrawDoc.status}`);
+        throw new ApiError(httpStatus.BAD_REQUEST, `Withdraw request is already ${withdrawDoc.status}`);
     }
 
     withdrawDoc.status = "REJECTED";
@@ -194,6 +196,10 @@ const getSingleWithdrawal = async (id: string, userId?: string) => {
     }
 
     const withdrawal = await Withdraw.findOne(query).populate("user", "name email phone profileImage role");
+    if (!withdrawal) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Withdrawal details not found");
+    }
+
     return withdrawal;
 };
 
