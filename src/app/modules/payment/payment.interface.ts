@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-export type PaymentStatus = "PAID" | "PENDING" | "REFUNDED" | "FAILED";
+export type PaymentStatus = "PAID" | "PENDING" | "REFUNDED" | "FAILED" | "DISPUTED";
 
 export interface IPayment {
     _id?: Types.ObjectId;
@@ -18,6 +18,11 @@ export interface IPayment {
     platformFeePercentage?: number;  // Platform fee percentage (e.g. 10 for 10%)
     platformFeeAmount?: number;      // Calculated platform fee amount in money
     isFeeSettled?: boolean;          // Whether the platform fee has been paid/settled
+    isDisputed?: boolean;
+    disputeReason?: string;
+    disputedAt?: Date;
+    disputeResolvedAt?: Date;
+    disputeResolutionNotes?: string;
     remarks?: string;
     createdAt?: Date;
     updatedAt?: Date;

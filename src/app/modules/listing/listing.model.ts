@@ -32,8 +32,39 @@ const ListingLocationSchema = new Schema(
             type: String,
             trim: true,
         },
-        coordinates: {
-            type: [Number], // [lng, lat]
+        location: {
+            type: {
+                type: String,
+                enum: ["Point"],
+                default: "Point",
+            },
+            coordinates: {
+                type: [Number], // [longitude, latitude]
+                required: false,
+            },
+        },
+    },
+    { _id: false },
+);
+
+const AvailabilitySlotSchema = new Schema(
+    {
+        day: {
+            type: String,
+            enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+            required: [true, "Day of week is required"],
+        },
+        startTime: {
+            type: String,
+            trim: true,
+        },
+        endTime: {
+            type: String,
+            trim: true,
+        },
+        isAvailable: {
+            type: Boolean,
+            default: true,
         },
     },
     { _id: false },
@@ -99,6 +130,10 @@ const ListingSchema = new Schema<IListing>(
                 "At least one pricing tier is required",
             ],
         },
+        availableDays: {
+            type: [AvailabilitySlotSchema],
+            default: [],
+        },
         averageRating: {
             type: Number,
             default: 0,
@@ -141,5 +176,6 @@ const ListingSchema = new Schema<IListing>(
 ListingSchema.index({ host: 1, isDeleted: 1 });
 ListingSchema.index({ facilityType: 1, isActive: 1, isDeleted: 1 });
 ListingSchema.index({ isActive: 1, isDeleted: 1, createdAt: -1 });
+ListingSchema.index({ "location.location": "2dsphere" });
 
 export const ListingModel = mongoose.model<IListing>("Listing", ListingSchema);

@@ -9,7 +9,19 @@ export interface IListingLocation {
     address: string;
     floorUnit?: string;
     accessInstructions?: string;
-    coordinates?: [number, number];
+    location?: {
+        type: "Point";
+        coordinates: [number, number]; // [longitude, latitude]
+    };
+}
+
+export type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
+
+export interface IAvailabilitySlot {
+    day: DayOfWeek;
+    startTime?: string; // "08:00"
+    endTime?: string;   // "18:00"
+    isAvailable: boolean;
 }
 
 export interface IListing {
@@ -25,6 +37,7 @@ export interface IListing {
     location: IListingLocation;
     photos: string[];
     pricingTiers: IPricingTier[];
+    availableDays?: IAvailabilitySlot[];
     averageRating?: number;
     totalReviews?: number;
     isActive?: boolean;

@@ -118,6 +118,23 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
             break;
         }
 
+        case "charge.dispute.created": {
+            const dispute = event.data.object as Stripe.Dispute;
+            if (dispute.payment_intent) {
+                const paymentIntentId = typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent.id;
+                const existingPayment = await Payment.findOne({ stripePaymentIntentId: paymentIntentId });
+
+                if (existingPayment) {
+                    existingPayment.status = "DISPUTED";
+                    existingPayment.isDisputed = true;
+                    existingPayment.disputeReason = dispute.reason || "Customer dispute created";
+                    existingPayment.disputedAt = new Date();
+                    await existingPayment.save();
+                }
+            }
+            break;
+        }
+
         default:
             console.log(`Unhandled Stripe event type: ${event.type}`);
     }

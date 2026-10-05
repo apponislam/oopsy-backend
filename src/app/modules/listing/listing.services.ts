@@ -4,6 +4,7 @@ import fs from "fs";
 import ApiError from "../../../errors/ApiError";
 import { IListing } from "./listing.interface";
 import { ListingModel } from "./listing.model";
+import { FavoriteModel } from "../favorite/favorite.model";
 
 const createListing = async (hostId: string, payload: Partial<IListing>, files?: Express.Multer.File[]) => {
     let photoUrls: string[] = payload.photos || [];
@@ -22,7 +23,7 @@ const createListing = async (hostId: string, payload: Partial<IListing>, files?:
     return listing;
 };
 
-const getAllListings = async (query: any) => {
+const getAllListings = async (query: any, userId?: string) => {
     const { facilityType, capacity, minPrice, maxPrice, search, page = 1, limit = 10 } = query;
 
     const filter: any = { isDeleted: false, isActive: true };
@@ -64,6 +65,21 @@ const getAllListings = async (query: any) => {
     const totalPages = Math.ceil(total / Number(limit));
     const pageNumber = Number(page);
 
+    // Get favorite listing IDs for authenticated user
+    let favoritedSet = new Set<string>();
+    if (userId) {
+        const userFavorites = await FavoriteModel.find({ user: userId }).select("listing");
+        favoritedSet = new Set(userFavorites.map((fav) => fav.listing.toString()));
+    }
+
+    const listingsWithFavorite = listings.map((item) => {
+        const obj = item.toObject();
+        return {
+            ...obj,
+            isFavorite: favoritedSet.has(item._id.toString()),
+        };
+    });
+
     return {
         meta: {
             page: pageNumber,
@@ -73,7 +89,7 @@ const getAllListings = async (query: any) => {
             hasNext: pageNumber < totalPages,
             hasPrev: pageNumber > 1,
         },
-        data: listings,
+        data: listingsWithFavorite,
     };
 };
 
@@ -134,7 +150,7 @@ const getHostListings = async (hostId: string) => {
     return listings;
 };
 
-const getSingleListing = async (id: string) => {
+const getSingleListing = async (id: string, userId?: string) => {
     const listing = await ListingModel.findOne({ _id: id, isDeleted: false })
         .populate("host", "name email phone profileImage businessDetails")
         .populate("facilityType", "name slug image");
@@ -143,7 +159,16 @@ const getSingleListing = async (id: string) => {
         throw new ApiError(httpStatus.NOT_FOUND, "Listing not found");
     }
 
-    return listing;
+    let isFavorite = false;
+    if (userId) {
+        const favorite = await FavoriteModel.findOne({ user: userId, listing: id });
+        isFavorite = !!favorite;
+    }
+
+    return {
+        ...listing.toObject(),
+        isFavorite,
+    };
 };
 
 const updateListing = async (

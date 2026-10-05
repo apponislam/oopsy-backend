@@ -28,7 +28,8 @@ const createListing = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllListings = catchAsync(async (req: Request, res: Response) => {
-    const result = await listingServices.getAllListings(req.query);
+    const userId = (req as any).user?._id;
+    const result = await listingServices.getAllListings(req.query, userId);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -65,7 +66,8 @@ const getHostListings = catchAsync(async (req: Request, res: Response) => {
 
 const getSingleListing = catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const result = await listingServices.getSingleListing(id);
+    const userId = (req as any).user?._id;
+    const result = await listingServices.getSingleListing(id, userId);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

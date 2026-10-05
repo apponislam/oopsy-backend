@@ -3,16 +3,17 @@ import auth from "../../middlewares/auth";
 import authorize from "../../middlewares/authorized";
 import { uploadListingPhotos } from "../../middlewares/multer";
 import { listingControllers } from "./listing.controllers";
+import checkAuth from "../../middlewares/checkAuth";
 
 const router = Router();
 
-// Public routes
-router.get("/", listingControllers.getAllListings);
+// Public / Optional Auth routes
+router.get("/", checkAuth, listingControllers.getAllListings);
 
 // Admin routes (SUPER_ADMIN)
 router.get("/admin", auth, authorize(["SUPER_ADMIN"]), listingControllers.getAdminListings);
 
-router.get("/:id", listingControllers.getSingleListing);
+router.get("/:id", checkAuth, listingControllers.getSingleListing);
 
 // Host routes (Authenticated users)
 router.get("/my/listings", auth, listingControllers.getHostListings);

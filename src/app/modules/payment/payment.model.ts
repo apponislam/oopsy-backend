@@ -38,7 +38,7 @@ const paymentSchema = new Schema<IPayment>(
         },
         status: {
             type: String,
-            enum: ['PAID', 'PENDING', 'REFUNDED', 'FAILED'],
+            enum: ['PAID', 'PENDING', 'REFUNDED', 'FAILED', 'DISPUTED'],
             default: 'PENDING',
         },
         stripePaymentIntentId: {
@@ -58,6 +58,22 @@ const paymentSchema = new Schema<IPayment>(
         isFeeSettled: {
             type: Boolean,
             default: false,
+        },
+        isDisputed: {
+            type: Boolean,
+            default: false,
+        },
+        disputeReason: {
+            type: String,
+        },
+        disputedAt: {
+            type: Date,
+        },
+        disputeResolvedAt: {
+            type: Date,
+        },
+        disputeResolutionNotes: {
+            type: String,
         },
         remarks: {
             type: String,

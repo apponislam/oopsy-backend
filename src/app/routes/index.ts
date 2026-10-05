@@ -10,6 +10,7 @@ import { paymentRoutes } from "../modules/payment/payment.routes";
 import { faqRoutes } from "../modules/faq/faq.routes";
 import { bookingRoutes } from "../modules/booking/booking.routes";
 import { withdrawRoutes } from "../modules/withdraw/withdraw.routes";
+import { favoriteRoutes } from "../modules/favorite/favorite.routes";
 
 const router = express.Router();
 
@@ -53,6 +54,10 @@ const moduleRoutes = [
     {
         path: "/withdraw",
         route: withdrawRoutes,
+    },
+    {
+        path: "/favorites",
+        route: favoriteRoutes,
     },
     {
         path: "/faqs",
