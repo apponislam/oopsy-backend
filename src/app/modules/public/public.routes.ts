@@ -5,12 +5,10 @@ import { publicControllers } from "./public.controllers";
 
 const router = Router();
 
-// Public routes — anyone can read policies
-router.get("/", publicControllers.getAllPolicies);
+// Public routes — read policy by type
 router.get("/:type", publicControllers.getPolicyByType);
 
-// Admin-only routes — create/update/delete policies
+// Admin-only routes — create/update policy
 router.post("/", auth, authorize(["SUPER_ADMIN"]), publicControllers.upsertPolicy);
-router.delete("/:type", auth, authorize(["SUPER_ADMIN"]), publicControllers.deletePolicy);
 
 export const publicRoutes = router;

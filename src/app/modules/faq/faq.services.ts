@@ -9,17 +9,9 @@ const createFaq = async (payload: Partial<IFaq>) => {
 };
 
 const getAllFaqs = async (query: any) => {
-    const { searchTerm, category, page = 1, limit = 10, isPublic } = query;
+    const { searchTerm, page = 1, limit = 10 } = query;
 
-    const filter: any = { isDeleted: false };
-
-    if (isPublic === "true" || isPublic === true) {
-        filter.isActive = true;
-    }
-
-    if (category) {
-        filter.category = { $regex: category, $options: "i" };
-    }
+    const filter: any = {};
 
     if (searchTerm) {
         filter.$or = [
@@ -53,16 +45,8 @@ const getAllFaqs = async (query: any) => {
     };
 };
 
-const getSingleFaq = async (id: string) => {
-    const faq = await FaqModel.findOne({ _id: id, isDeleted: false });
-    if (!faq) {
-        throw new ApiError(httpStatus.NOT_FOUND, "FAQ not found");
-    }
-    return faq;
-};
-
 const updateFaq = async (id: string, payload: Partial<IFaq>) => {
-    const faq = await FaqModel.findOne({ _id: id, isDeleted: false });
+    const faq = await FaqModel.findById(id);
     if (!faq) {
         throw new ApiError(httpStatus.NOT_FOUND, "FAQ not found");
     }
@@ -77,13 +61,10 @@ const updateFaq = async (id: string, payload: Partial<IFaq>) => {
 };
 
 const deleteFaq = async (id: string) => {
-    const faq = await FaqModel.findOne({ _id: id, isDeleted: false });
+    const faq = await FaqModel.findByIdAndDelete(id);
     if (!faq) {
         throw new ApiError(httpStatus.NOT_FOUND, "FAQ not found");
     }
-
-    faq.isDeleted = true;
-    await faq.save();
 
     return { message: "FAQ deleted successfully" };
 };
@@ -91,7 +72,6 @@ const deleteFaq = async (id: string) => {
 export const faqServices = {
     createFaq,
     getAllFaqs,
-    getSingleFaq,
     updateFaq,
     deleteFaq,
 };

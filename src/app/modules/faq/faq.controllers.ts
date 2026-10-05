@@ -27,18 +27,6 @@ const getAllFaqs = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
-const getSingleFaq = catchAsync(async (req: Request, res: Response) => {
-    const id = req.params.id as string;
-    const result = await faqServices.getSingleFaq(id);
-
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "FAQ details retrieved successfully",
-        data: result,
-    });
-});
-
 const updateFaq = catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const result = await faqServices.updateFaq(id, req.body);
@@ -66,7 +54,6 @@ const deleteFaq = catchAsync(async (req: Request, res: Response) => {
 export const faqControllers = {
     createFaq,
     getAllFaqs,
-    getSingleFaq,
     updateFaq,
     deleteFaq,
 };

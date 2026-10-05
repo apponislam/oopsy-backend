@@ -7,7 +7,6 @@ const router = Router();
 
 // Public Routes
 router.get("/", faqControllers.getAllFaqs);
-router.get("/:id", faqControllers.getSingleFaq);
 
 // Super Admin Only Routes
 router.post("/", auth, authorize(["SUPER_ADMIN"]), faqControllers.createFaq);
