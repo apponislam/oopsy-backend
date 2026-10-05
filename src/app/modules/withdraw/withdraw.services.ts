@@ -187,6 +187,16 @@ const getAllWithdrawalsForAdmin = async (filters: IWithdrawFilterOptions) => {
     };
 };
 
+const getSingleWithdrawal = async (id: string, userId?: string) => {
+    const query: any = { _id: id };
+    if (userId) {
+        query.user = userId;
+    }
+
+    const withdrawal = await Withdraw.findOne(query).populate("user", "name email phone profileImage role");
+    return withdrawal;
+};
+
 export const WithdrawService = {
     createConnectAccount,
     createAccountLink,
@@ -195,4 +205,5 @@ export const WithdrawService = {
     rejectPayout,
     getUserWithdrawals,
     getAllWithdrawalsForAdmin,
+    getSingleWithdrawal,
 };

@@ -15,6 +15,7 @@ router.post('/connect-account', auth, WithdrawController.createConnectAccount);
 router.post('/connect-onboarding', auth, WithdrawController.createAccountLink);
 router.post('/request', auth, WithdrawController.requestPayout);
 router.get('/history', auth, WithdrawController.getUserWithdrawals);
+router.get('/:id', auth, WithdrawController.getSingleWithdrawal);
 
 // Stripe Redirect Routes (Onboarding Callbacks)
 router.get('/stripe/return', WithdrawController.handleStripeReturn);

@@ -112,6 +112,20 @@ const getAllWithdrawalsForAdmin = catchAsync(async (req: Request, res: Response)
     });
 });
 
+const getSingleWithdrawal = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userId = (req as any).user._id;
+
+    const result = await WithdrawService.getSingleWithdrawal(id as string, userId);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Withdrawal details fetched successfully",
+        data: result,
+    });
+});
+
 const handleStripeReturn = catchAsync(async (req: Request, res: Response) => {
     res.redirect("oopsy://withdraw/onboarding-complete");
 });
@@ -128,6 +142,7 @@ export const WithdrawController = {
     rejectPayout,
     getUserWithdrawals,
     getAllWithdrawalsForAdmin,
+    getSingleWithdrawal,
     handleStripeReturn,
     handleStripeReauth,
 };
