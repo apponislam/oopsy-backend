@@ -140,47 +140,6 @@ const getSingleTransactionForAdmin = catchAsync(async (req: Request, res: Respon
     });
 });
 
-const requestPayout = catchAsync(async (req: Request, res: Response) => {
-    const userId = (req as any).user._id;
-    const { amount, remarks } = req.body;
-
-    const result = await TransactionService.requestPayout(userId, Number(amount), remarks);
-
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "Payout request submitted successfully. Waiting for admin approval.",
-        data: result,
-    });
-});
-
-const acceptPayout = catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params;
-
-    const result = await TransactionService.acceptPayout(id as string);
-
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "Payout request accepted successfully",
-        data: result,
-    });
-});
-
-const rejectPayout = catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const { reason } = req.body;
-
-    const result = await TransactionService.rejectPayout(id as string, reason);
-
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "Payout request rejected and amount refunded to user balance",
-        data: result,
-    });
-});
-
 export const TransactionController = {
     createPaymentIntent,
     processRefund,
@@ -190,7 +149,4 @@ export const TransactionController = {
     getSingleTransaction,
     getAllTransactionsForAdmin,
     getSingleTransactionForAdmin,
-    requestPayout,
-    acceptPayout,
-    rejectPayout,
 };

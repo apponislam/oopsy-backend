@@ -2,13 +2,13 @@ import { Request, Response } from "express";
 import httpStatus from "http-status";
 import catchAsync from "../../../utils/catchAsync";
 import sendResponse from "../../../utils/sendResponse";
-import { StripeService } from "../stripe/stripe.services";
+import { WithdrawService } from "./withdraw.services";
 
 const createConnectAccount = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user._id;
     const email = (req as any).user.email;
 
-    const result = await StripeService.createConnectAccount(userId, email);
+    const result = await WithdrawService.createConnectAccount(userId, email);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -22,12 +22,53 @@ const createAccountLink = catchAsync(async (req: Request, res: Response) => {
     const userId = (req as any).user._id;
     const { returnUrl, refreshUrl } = req.body;
 
-    const result = await StripeService.createAccountLink(userId, returnUrl, refreshUrl);
+    const result = await WithdrawService.createAccountLink(userId, returnUrl, refreshUrl);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: "Stripe Connect onboarding link generated successfully",
+        data: result,
+    });
+});
+
+const requestPayout = catchAsync(async (req: Request, res: Response) => {
+    const userId = (req as any).user._id;
+    const { amount, remarks } = req.body;
+
+    const result = await WithdrawService.requestPayout(userId, Number(amount), remarks);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Payout request submitted successfully. Waiting for admin approval.",
+        data: result,
+    });
+});
+
+const acceptPayout = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const result = await WithdrawService.acceptPayout(id as string);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Payout request accepted successfully",
+        data: result,
+    });
+});
+
+const rejectPayout = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const result = await WithdrawService.rejectPayout(id as string, reason);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Payout request rejected and amount refunded to user balance",
         data: result,
     });
 });
@@ -43,6 +84,9 @@ const handleStripeReauth = catchAsync(async (req: Request, res: Response) => {
 export const WithdrawController = {
     createConnectAccount,
     createAccountLink,
+    requestPayout,
+    acceptPayout,
+    rejectPayout,
     handleStripeReturn,
     handleStripeReauth,
 };
