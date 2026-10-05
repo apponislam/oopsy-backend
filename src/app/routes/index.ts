@@ -11,6 +11,7 @@ import { faqRoutes } from "../modules/faq/faq.routes";
 import { bookingRoutes } from "../modules/booking/booking.routes";
 import { withdrawRoutes } from "../modules/withdraw/withdraw.routes";
 import { favoriteRoutes } from "../modules/favorite/favorite.routes";
+import { reportRoutes } from "../modules/report/report.routes";
 
 const router = express.Router();
 
@@ -62,6 +63,10 @@ const moduleRoutes = [
     {
         path: "/faqs",
         route: faqRoutes,
+    },
+    {
+        path: "/reports",
+        route: reportRoutes,
     },
 ];
 
