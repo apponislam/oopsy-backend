@@ -3,7 +3,6 @@ import { Types } from "mongoose";
 export enum ReportTypeEnum {
     LISTING = "LISTING",
     USER = "USER",
-    REVIEW = "REVIEW",
 }
 
 export enum ReportStatusEnum {
