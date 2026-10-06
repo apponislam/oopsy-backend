@@ -68,6 +68,7 @@ const ReviewSchema = new Schema<IReview>(
             type: Schema.Types.ObjectId,
             ref: "Booking",
             required: [true, "Booking is required"],
+            unique: true,
         },
         listing: {
             type: Schema.Types.ObjectId,

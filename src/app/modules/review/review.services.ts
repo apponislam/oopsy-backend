@@ -6,12 +6,14 @@ import ApiError from "../../../errors/ApiError";
 import { ListingModel } from "../listing/listing.model";
 import { UserModel } from "../auth/auth.model";
 import { SettingModel } from "../setting/setting.model";
+import { BookingModel } from "../booking/booking.model";
 import { IRatingCategories, IReview, IReviewStats } from "./review.interface";
 import { ReviewModel } from "./review.model";
 
 const createReview = async (
     userId: string,
     payload: {
+        booking: string;
         listing: string;
         rating?: number;
         categories: IRatingCategories;
@@ -20,7 +22,7 @@ const createReview = async (
     },
     files?: Express.Multer.File[],
 ) => {
-    const { listing: listingId, categories, comment } = payload;
+    const { booking: bookingId, listing: listingId, categories, comment } = payload;
 
     // 1. Verify listing exists
     const listingExists = await ListingModel.findOne({ _id: listingId, isDeleted: false });
@@ -28,15 +30,20 @@ const createReview = async (
         throw new ApiError(httpStatus.NOT_FOUND, "Listing not found");
     }
 
-    // 2. Prevent host from reviewing their own listing
+    // 2. Verify booking exists
+    const bookingExists = await BookingModel.findById(bookingId);
+    if (!bookingExists) {
+        throw new ApiError(httpStatus.NOT_FOUND, "Booking not found");
+    }
+
+    // 3. Prevent host from reviewing their own listing
     if (listingExists.host.toString() === userId) {
         throw new ApiError(httpStatus.BAD_REQUEST, "Hosts cannot review their own listing");
     }
 
-    // 3. Check if user already reviewed this listing
+    // 4. Check if user already reviewed this booking
     const existingReview = await ReviewModel.findOne({
-        user: userId,
-        listing: listingId,
+        booking: bookingId,
         isDeleted: false,
     });
 
@@ -64,6 +71,7 @@ const createReview = async (
 
     const review = await ReviewModel.create({
         user: userId,
+        booking: bookingId,
         listing: listingId,
         rating: overallRating,
         categories,
@@ -71,6 +79,11 @@ const createReview = async (
         photos: photoUrls,
         isApproved,
     });
+
+    // 7. Update isReviewed on the associated booking if provided
+    if (bookingId) {
+        await BookingModel.findByIdAndUpdate(bookingId, { isReviewed: true });
+    }
 
     // Update aggregated rating and total count on listing if approved
     if (isApproved) {
@@ -192,10 +205,7 @@ const updateReview = async (id: string, userId: string, payload: Partial<IReview
     // Photos update handling
     let currentPhotos = existingReview.photos || [];
 
-    const removeTargets: string[] = [
-        ...(Array.isArray((payload as any).removeImages) ? (payload as any).removeImages : []),
-        ...(Array.isArray((payload as any).removePhotos) ? (payload as any).removePhotos : []),
-    ];
+    const removeTargets: string[] = [...(Array.isArray((payload as any).removeImages) ? (payload as any).removeImages : []), ...(Array.isArray((payload as any).removePhotos) ? (payload as any).removePhotos : [])];
 
     if (removeTargets.length > 0) {
         currentPhotos = currentPhotos.filter((photo: string) => !removeTargets.includes(photo));
@@ -259,6 +269,10 @@ const deleteReview = async (id: string, userId: string, userRole?: string) => {
 
     existingReview.isDeleted = true;
     await existingReview.save();
+
+    if (existingReview.booking) {
+        await BookingModel.findByIdAndUpdate(existingReview.booking, { isReviewed: false });
+    }
 
     // Recalculate and update listing metrics on deletion
     if (existingReview.listing) {
