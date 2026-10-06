@@ -18,6 +18,7 @@ export interface IReviewReply {
 export interface IReview {
     _id?: Types.ObjectId;
     user: Types.ObjectId;
+    booking: Types.ObjectId;
     listing: Types.ObjectId;
     rating: number;
     categories: IRatingCategories;

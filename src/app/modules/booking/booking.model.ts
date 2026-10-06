@@ -54,6 +54,10 @@ const BookingSchema = new Schema<IBooking>(
             type: Boolean,
             default: false,
         },
+        isReviewed: {
+            type: Boolean,
+            default: false,
+        },
         stripePaymentIntentId: {
             type: String,
         },

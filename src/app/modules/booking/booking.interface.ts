@@ -15,6 +15,7 @@ export interface IBooking {
     currency?: string; // default GBP
     status: BookingStatus;
     isPaid?: boolean;
+    isReviewed?: boolean;
     stripePaymentIntentId?: string;
     cancelledBy?: Types.ObjectId;
     cancelReason?: string;
