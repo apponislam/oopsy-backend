@@ -65,10 +65,14 @@ const getAllListings = async (query: any, userId?: string) => {
     const totalPages = Math.ceil(total / Number(limit));
     const pageNumber = Number(page);
 
-    // Get favorite listing IDs for authenticated user
+    // Get favorite listing IDs for authenticated user (only for current page listings)
     let favoritedSet = new Set<string>();
-    if (userId) {
-        const userFavorites = await FavoriteModel.find({ user: userId }).select("listing");
+    if (userId && listings.length > 0) {
+        const listingIds = listings.map((item) => item._id);
+        const userFavorites = await FavoriteModel.find({
+            user: userId,
+            listing: { $in: listingIds },
+        }).select("listing");
         favoritedSet = new Set(userFavorites.map((fav) => fav.listing.toString()));
     }
 
