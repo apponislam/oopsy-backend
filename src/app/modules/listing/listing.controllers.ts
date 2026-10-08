@@ -54,13 +54,14 @@ const getAdminListings = catchAsync(async (req: Request, res: Response) => {
 
 const getHostListings = catchAsync(async (req: Request, res: Response) => {
     const hostId = (req as any).user._id;
-    const result = await listingServices.getHostListings(hostId);
+    const result = await listingServices.getHostListings(hostId, req.query);
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
         message: "Host listings retrieved successfully",
-        data: result,
+        data: result.data,
+        meta: result.meta,
     });
 });
 

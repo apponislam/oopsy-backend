@@ -147,11 +147,35 @@ const getAdminListings = async (query: any) => {
     };
 };
 
-const getHostListings = async (hostId: string) => {
-    const listings = await ListingModel.find({ host: hostId, isDeleted: false })
-        .populate("facilityType", "name slug image")
-        .sort({ createdAt: -1 });
-    return listings;
+const getHostListings = async (hostId: string, query: any = {}) => {
+    const { page = 1, limit = 10 } = query;
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const filter = { host: hostId, isDeleted: false };
+
+    const [listings, total] = await Promise.all([
+        ListingModel.find(filter)
+            .populate("facilityType", "name slug image")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit)),
+        ListingModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / Number(limit));
+    const pageNumber = Number(page);
+
+    return {
+        meta: {
+            page: pageNumber,
+            limit: Number(limit),
+            total,
+            totalPages,
+            hasNext: pageNumber < totalPages,
+            hasPrev: pageNumber > 1,
+        },
+        data: listings,
+    };
 };
 
 const getSingleListing = async (id: string, userId?: string) => {
