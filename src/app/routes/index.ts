@@ -12,6 +12,7 @@ import { bookingRoutes } from "../modules/booking/booking.routes";
 import { withdrawRoutes } from "../modules/withdraw/withdraw.routes";
 import { favoriteRoutes } from "../modules/favorite/favorite.routes";
 import { reportRoutes } from "../modules/report/report.routes";
+import { disputeRoutes } from "../modules/dispute/dispute.routes";
 
 const router = express.Router();
 
@@ -67,6 +68,10 @@ const moduleRoutes = [
     {
         path: "/reports",
         route: reportRoutes,
+    },
+    {
+        path: "/disputes",
+        route: disputeRoutes,
     },
 ];
 
