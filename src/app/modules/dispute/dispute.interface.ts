@@ -34,6 +34,7 @@ export interface IDispute {
     refundAmount?: number;
     status: DisputeStatusEnum;
     resolutionNotes?: string;
+    stripeRefundId?: string;
     resolvedBy?: Types.ObjectId; // Super Admin ID
     resolvedAt?: Date;
     createdAt?: Date;

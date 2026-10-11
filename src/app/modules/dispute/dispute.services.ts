@@ -6,6 +6,7 @@ import { Payment } from "../payment/payment.model";
 import { DisputeReasonEnum, DisputeStatusEnum, IDispute, IDisputeFilterOptions } from "./dispute.interface";
 import { DisputeModel } from "./dispute.model";
 import { notificationServices } from "../notification/notification.services";
+import { StripeService } from "../stripe/stripe.services";
 
 const createDispute = async (
     userId: string,
@@ -249,6 +250,51 @@ const resolveDisputeByAdmin = async (
 
     if ([DisputeStatusEnum.RESOLVED_REFUNDED, DisputeStatusEnum.RESOLVED_REJECTED, DisputeStatusEnum.CANCELLED].includes(dispute.status)) {
         throw new ApiError(httpStatus.BAD_REQUEST, "This dispute has already been concluded");
+    }
+
+    // If admin is granting a refund, process it via Stripe
+    if (status === DisputeStatusEnum.RESOLVED_REFUNDED) {
+        // Find payment associated with this dispute/booking
+        const payment =
+            (dispute.payment ? await Payment.findById(dispute.payment) : null) ||
+            (await Payment.findOne({ booking: dispute.booking, status: "PAID" }));
+
+        if (!payment) {
+            throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                "Cannot issue refund: No completed payment found for this disputed booking",
+            );
+        }
+
+        const refundAmount = dispute.refundAmount && dispute.refundAmount > 0 ? dispute.refundAmount : undefined;
+
+        // Process refund through Stripe service
+        const refundResult = await StripeService.processRefund({
+            transactionId: payment._id.toString(),
+            amount: refundAmount,
+            reason: resolutionNotes || `Dispute resolution #${dispute.disputeId}`,
+        });
+
+        if (refundResult?.refund?.id) {
+            dispute.stripeRefundId = refundResult.refund.id;
+        }
+
+        // Update dispute audit fields on original payment record
+        await Payment.findByIdAndUpdate(payment._id, {
+            $set: {
+                isDisputed: true,
+                disputeResolvedAt: new Date(),
+                disputeResolutionNotes: resolutionNotes || `Refund issued via Dispute #${dispute.disputeId}`,
+            },
+        });
+
+        // Update booking status and refund status if appropriate
+        await BookingModel.findByIdAndUpdate(dispute.booking, {
+            $set: {
+                status: "CANCELLED",
+                cancelReason: `Refunded via Dispute #${dispute.disputeId}`,
+            },
+        });
     }
 
     dispute.status = status;

@@ -63,6 +63,9 @@ const DisputeSchema = new Schema<IDispute>(
             type: String,
             trim: true,
         },
+        stripeRefundId: {
+            type: String,
+        },
         resolvedBy: {
             type: Schema.Types.ObjectId,
             ref: "User",
