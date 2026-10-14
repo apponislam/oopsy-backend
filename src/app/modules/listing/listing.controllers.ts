@@ -40,6 +40,18 @@ const getAllListings = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getMapListings = catchAsync(async (req: Request, res: Response) => {
+    const result = await listingServices.getMapListings(req.query as any);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Map listings retrieved successfully",
+        data: result.data,
+        meta: result.meta,
+    });
+});
+
 const getAdminListings = catchAsync(async (req: Request, res: Response) => {
     const result = await listingServices.getAdminListings(req.query);
 
@@ -133,6 +145,7 @@ const deleteListing = catchAsync(async (req: Request, res: Response) => {
 export const listingControllers = {
     createListing,
     getAllListings,
+    getMapListings,
     getAdminListings,
     getHostListings,
     getSingleListing,

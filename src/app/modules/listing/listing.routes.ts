@@ -8,6 +8,7 @@ import checkAuth from "../../middlewares/checkAuth";
 const router = Router();
 
 // Public / Optional Auth routes
+router.get("/map", listingControllers.getMapListings);
 router.get("/", checkAuth, listingControllers.getAllListings);
 
 // Admin routes (SUPER_ADMIN)

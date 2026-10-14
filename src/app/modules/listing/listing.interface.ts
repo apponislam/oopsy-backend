@@ -20,7 +20,7 @@ export type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Frida
 export interface IAvailabilitySlot {
     day: DayOfWeek;
     startTime?: string; // "08:00"
-    endTime?: string;   // "18:00"
+    endTime?: string; // "18:00"
     isAvailable: boolean;
 }
 
@@ -46,4 +46,13 @@ export interface IListing {
     isDeleted?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
+}
+
+export interface IListingMapQuery {
+    minLat: number | string;
+    maxLat: number | string;
+    minLng: number | string;
+    maxLng: number | string;
+    page?: number | string;
+    limit?: number | string;
 }

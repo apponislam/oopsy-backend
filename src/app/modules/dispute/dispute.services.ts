@@ -54,10 +54,7 @@ const createDispute = async (
     // Validate refund amount if requested
     const requestedRefund = refundRequested ? (refundAmount ?? booking.price) : 0;
     if (refundRequested && requestedRefund > booking.price) {
-        throw new ApiError(
-            httpStatus.BAD_REQUEST,
-            `Requested refund amount (${requestedRefund}) cannot exceed the booking total (${booking.price})`,
-        );
+        throw new ApiError(httpStatus.BAD_REQUEST, `Requested refund amount (${requestedRefund}) cannot exceed the booking total (${booking.price})`);
     }
 
     const dispute = await DisputeModel.create({
@@ -148,11 +145,7 @@ const getAllDisputes = async (query: IDisputeFilterOptions) => {
     }
 
     if (searchTerm) {
-        filter.$or = [
-            { disputeId: { $regex: searchTerm, $options: "i" } },
-            { reason: { $regex: searchTerm, $options: "i" } },
-            { description: { $regex: searchTerm, $options: "i" } },
-        ];
+        filter.$or = [{ disputeId: { $regex: searchTerm, $options: "i" } }, { reason: { $regex: searchTerm, $options: "i" } }, { description: { $regex: searchTerm, $options: "i" } }];
     }
 
     const pageNumber = Number(page);
@@ -186,23 +179,14 @@ const getAllDisputes = async (query: IDisputeFilterOptions) => {
 };
 
 const getSingleDispute = async (id: string, user: { _id: string; role: string }) => {
-    const dispute = await DisputeModel.findById(id)
-        .populate("initiator", "name email profileImage role")
-        .populate("defendant", "name email profileImage role")
-        .populate("booking")
-        .populate("listing", "title images address")
-        .populate("payment")
-        .populate("resolvedBy", "name email");
+    const dispute = await DisputeModel.findById(id).populate("initiator", "name email profileImage role").populate("defendant", "name email profileImage role").populate("booking").populate("listing", "title images address").populate("payment").populate("resolvedBy", "name email");
 
     if (!dispute) {
         throw new ApiError(httpStatus.NOT_FOUND, "Dispute not found");
     }
 
     // Allow Super Admin, initiator, or defendant to view
-    const isAuthorized =
-        user.role === "SUPER_ADMIN" ||
-        dispute.initiator?._id?.toString() === user._id.toString() ||
-        dispute.defendant?._id?.toString() === user._id.toString();
+    const isAuthorized = user.role === "SUPER_ADMIN" || dispute.initiator?._id?.toString() === user._id.toString() || dispute.defendant?._id?.toString() === user._id.toString();
 
     if (!isAuthorized) {
         throw new ApiError(httpStatus.FORBIDDEN, "You do not have permission to view this dispute");
@@ -255,15 +239,10 @@ const resolveDisputeByAdmin = async (
     // If admin is granting a refund, process it via Stripe
     if (status === DisputeStatusEnum.RESOLVED_REFUNDED) {
         // Find payment associated with this dispute/booking
-        const payment =
-            (dispute.payment ? await Payment.findById(dispute.payment) : null) ||
-            (await Payment.findOne({ booking: dispute.booking, status: "PAID" }));
+        const payment = (dispute.payment ? await Payment.findById(dispute.payment) : null) || (await Payment.findOne({ booking: dispute.booking, status: "PAID" }));
 
         if (!payment) {
-            throw new ApiError(
-                httpStatus.BAD_REQUEST,
-                "Cannot issue refund: No completed payment found for this disputed booking",
-            );
+            throw new ApiError(httpStatus.BAD_REQUEST, "Cannot issue refund: No completed payment found for this disputed booking");
         }
 
         const refundAmount = dispute.refundAmount && dispute.refundAmount > 0 ? dispute.refundAmount : undefined;
@@ -310,7 +289,7 @@ const resolveDisputeByAdmin = async (
         { path: "initiator", select: "name email profileImage role" },
         { path: "defendant", select: "name email profileImage role" },
         { path: "booking", select: "bookingId date time price status" },
-        { path: "resolvedBy", select: "name email" },
+        { path: "resolvedBy", select: "name email profileImage role" },
     ]);
 
     // Send notifications to initiator and defendant
@@ -318,8 +297,8 @@ const resolveDisputeByAdmin = async (
         status === DisputeStatusEnum.RESOLVED_REFUNDED
             ? `Your dispute #${dispute.disputeId} has been resolved with a refund decision.`
             : status === DisputeStatusEnum.RESOLVED_REJECTED
-            ? `Your dispute #${dispute.disputeId} has been reviewed and rejected.`
-            : `Your dispute #${dispute.disputeId} status is now under review.`;
+              ? `Your dispute #${dispute.disputeId} has been reviewed and rejected.`
+              : `Your dispute #${dispute.disputeId} status is now under review.`;
 
     try {
         await Promise.all([

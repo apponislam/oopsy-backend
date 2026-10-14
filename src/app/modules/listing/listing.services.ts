@@ -2,7 +2,7 @@ import httpStatus from "http-status";
 import path from "path";
 import fs from "fs";
 import ApiError from "../../../errors/ApiError";
-import { IListing } from "./listing.interface";
+import { IListing, IListingMapQuery } from "./listing.interface";
 import { ListingModel } from "./listing.model";
 import { FavoriteModel } from "../favorite/favorite.model";
 
@@ -94,6 +94,72 @@ const getAllListings = async (query: any, userId?: string) => {
             hasPrev: pageNumber > 1,
         },
         data: listingsWithFavorite,
+    };
+};
+
+const getMapListings = async (query: IListingMapQuery) => {
+    const { minLat, maxLat, minLng, maxLng, page = 1, limit = 10 } = query;
+
+    if (!minLat || !maxLat || !minLng || !maxLng) {
+        throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "minLat, maxLat, minLng, and maxLng query parameters are required",
+        );
+    }
+
+    const sLat = Math.min(Number(minLat), Number(maxLat));
+    const nLat = Math.max(Number(minLat), Number(maxLat));
+    const wLng = Math.min(Number(minLng), Number(maxLng));
+    const eLng = Math.max(Number(minLng), Number(maxLng));
+
+    const pageNumber = Number(page) || 1;
+    const limitNumber = Number(limit) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const filter = {
+        isDeleted: false,
+        isActive: true,
+        "location.location": {
+            $geoWithin: {
+                $geometry: {
+                    type: "Polygon",
+                    coordinates: [
+                        [
+                            [wLng, sLat],
+                            [eLng, sLat],
+                            [eLng, nLat],
+                            [wLng, nLat],
+                            [wLng, sLat],
+                        ],
+                    ],
+                },
+            },
+        },
+    };
+
+    const [listings, total] = await Promise.all([
+        ListingModel.find(filter)
+            .select("-capacity -smokingPolicy -amenities")
+            .populate("host", "name email phone profileImage")
+            .populate("facilityType", "name slug image")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNumber),
+        ListingModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limitNumber);
+
+    return {
+        meta: {
+            page: pageNumber,
+            limit: limitNumber,
+            total,
+            totalPages,
+            hasNext: pageNumber < totalPages,
+            hasPrev: pageNumber > 1,
+        },
+        data: listings,
     };
 };
 
@@ -299,6 +365,7 @@ const deleteListing = async (id: string, hostId: string) => {
 export const listingServices = {
     createListing,
     getAllListings,
+    getMapListings,
     getAdminListings,
     getHostListings,
     getSingleListing,
