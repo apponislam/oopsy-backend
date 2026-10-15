@@ -11,7 +11,7 @@ export interface IListingLocation {
     accessInstructions?: string;
     location?: {
         type: "Point";
-        coordinates: [number, number]; // [longitude, latitude]
+        coordinates: [number, number];
     };
 }
 
@@ -19,8 +19,8 @@ export type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Frida
 
 export interface IAvailabilitySlot {
     day: DayOfWeek;
-    startTime?: string; // "08:00"
-    endTime?: string; // "18:00"
+    startTime?: string;
+    endTime?: string;
     isAvailable: boolean;
 }
 
