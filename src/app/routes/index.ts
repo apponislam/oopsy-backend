@@ -13,10 +13,15 @@ import { withdrawRoutes } from "../modules/withdraw/withdraw.routes";
 import { favoriteRoutes } from "../modules/favorite/favorite.routes";
 import { reportRoutes } from "../modules/report/report.routes";
 import { disputeRoutes } from "../modules/dispute/dispute.routes";
+import { userRoutes } from "../modules/user/user.routes";
 
 const router = express.Router();
 
 const moduleRoutes = [
+    {
+        path: "/users",
+        route: userRoutes,
+    },
     {
         path: "/auth",
         route: authRoutes,

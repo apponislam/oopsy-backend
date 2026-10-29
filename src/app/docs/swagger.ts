@@ -754,6 +754,118 @@ export const swaggerSpec = {
                 },
             },
         },
+        "/users": {
+            get: {
+                tags: ["Users"],
+                summary: "Get All Users with Filters (Super Admin)",
+                security: [{ BearerAuth: [] }],
+                description: "Retrieve users with multi-field search (name, email, phone, businessName, referralCode), role, active/approved/verification status, date ranges, and pagination.",
+                parameters: [
+                    { name: "searchTerm", in: "query", schema: { type: "string" }, description: "Search by name, email, phone, businessName, referralCode" },
+                    { name: "role", in: "query", schema: { type: "string", enum: ["ALL", "CLIENT", "PROVIDER", "SUPER_ADMIN"] } },
+                    { name: "isActive", in: "query", schema: { type: "string", enum: ["ALL", "true", "false"] } },
+                    { name: "isApproved", in: "query", schema: { type: "string", enum: ["ALL", "true", "false"] } },
+                    { name: "isEmailVerified", in: "query", schema: { type: "string", enum: ["ALL", "true", "false"] } },
+                    { name: "isDeleted", in: "query", schema: { type: "string", enum: ["true", "false"] }, description: "Default is false" },
+                    { name: "startDate", in: "query", schema: { type: "string", format: "date" }, example: "2026-01-01" },
+                    { name: "endDate", in: "query", schema: { type: "string", format: "date" }, example: "2026-12-31" },
+                    { name: "page", in: "query", schema: { type: "number", default: 1 } },
+                    { name: "limit", in: "query", schema: { type: "number", default: 10 } },
+                    { name: "sortBy", in: "query", schema: { type: "string", default: "createdAt" } },
+                    { name: "sortOrder", in: "query", schema: { type: "string", enum: ["asc", "desc"], default: "desc" } },
+                ],
+                responses: {
+                    200: {
+                        description: "List of users with metadata and aggregate stats",
+                        content: {
+                            "application/json": {
+                                schema: {
+                                    type: "object",
+                                    properties: {
+                                        success: { type: "boolean", example: true },
+                                        message: { type: "string", example: "Users retrieved successfully" },
+                                        data: {
+                                            type: "array",
+                                            items: { $ref: "#/components/schemas/User" },
+                                        },
+                                        meta: { $ref: "#/components/schemas/StandardResponse/properties/meta" },
+                                        stats: {
+                                            type: "object",
+                                            properties: {
+                                                totalUsers: { type: "number", example: 45 },
+                                                totalClients: { type: "number", example: 30 },
+                                                totalProviders: { type: "number", example: 14 },
+                                                pendingApprovals: { type: "number", example: 3 },
+                                                activeUsers: { type: "number", example: 42 },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "/users/{userId}": {
+            get: {
+                tags: ["Users"],
+                summary: "Get Single User Details (Super Admin)",
+                security: [{ BearerAuth: [] }],
+                parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string" } }],
+                responses: {
+                    200: {
+                        description: "User details",
+                        content: {
+                            "application/json": {
+                                schema: {
+                                    type: "object",
+                                    properties: {
+                                        success: { type: "boolean", example: true },
+                                        data: { $ref: "#/components/schemas/User" },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+            delete: {
+                tags: ["Users"],
+                summary: "Soft Delete User (Super Admin)",
+                security: [{ BearerAuth: [] }],
+                parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string" } }],
+                responses: {
+                    200: { description: "User soft deleted successfully" },
+                },
+            },
+        },
+        "/users/{userId}/status": {
+            patch: {
+                tags: ["Users"],
+                summary: "Update User Status / Approval (Super Admin)",
+                security: [{ BearerAuth: [] }],
+                parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string" } }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    isActive: { type: "boolean", example: true },
+                                    isApproved: { type: "boolean", example: true },
+                                    isEmailVerified: { type: "boolean", example: true },
+                                },
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    200: { description: "User status updated" },
+                },
+            },
+        },
         "/categories": {
             get: {
                 tags: ["Categories"],
