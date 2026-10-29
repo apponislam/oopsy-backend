@@ -296,6 +296,32 @@ export const swaggerSpec = {
                 },
             },
         },
+        responses: {
+            "400BadRequest": {
+                description: "Bad Request / Validation Error",
+                content: {
+                    "application/json": {
+                        schema: { $ref: "#/components/schemas/ErrorResponse" },
+                    },
+                },
+            },
+            "401Unauthorized": {
+                description: "Unauthorized - Authentication required",
+                content: {
+                    "application/json": {
+                        schema: { $ref: "#/components/schemas/ErrorResponse" },
+                    },
+                },
+            },
+            "404NotFound": {
+                description: "Resource Not Found",
+                content: {
+                    "application/json": {
+                        schema: { $ref: "#/components/schemas/ErrorResponse" },
+                    },
+                },
+            },
+        },
     },
     paths: {
         "/status": {
@@ -376,7 +402,14 @@ export const swaggerSpec = {
                             },
                         },
                     },
-                    400: { $ref: "#/components/responses/400BadRequest" },
+                    400: {
+                        description: "Bad Request or Validation Error",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -1777,16 +1810,6 @@ export const swaggerSpec = {
                 },
                 responses: {
                     201: { description: "FAQ created" },
-                },
-            },
-        },
-    },
-    components_responses: {
-        "400BadRequest": {
-            description: "Bad Request",
-            content: {
-                "application/json": {
-                    schema: { $ref: "#/components/schemas/ErrorResponse" },
                 },
             },
         },

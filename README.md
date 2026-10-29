@@ -733,7 +733,7 @@ A pre-configured Postman collection is included in the root directory:
 
 | Script | Command | Description |
 | :--- | :--- | :--- |
-| `npm run dev` | `tsx watch src/server.ts` | Start server in development mode with fast hot-reload |
+| `npm run dev` | `ts-node-dev --respawn --transpile-only src/server.ts` | Start server in development mode with hot-reload |
 | `npm run build` | `tsc` | Compile TypeScript source code into `dist/` |
 | `npm start` | `node dist/server.js` | Run compiled production bundle |
 | `npm run lint` | `npx eslint src` | Run ESLint static code analysis |

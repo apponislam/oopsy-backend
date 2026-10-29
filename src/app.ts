@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
+import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./app/docs/swagger";
 import notFound from "./errors/notFound";
@@ -10,10 +11,12 @@ import router from "./app/routes";
 
 const app: Application = express();
 
+app.use(morgan("dev"));
+
 app.use("/api/v1/payments/webhook", express.raw({ type: "application/json" }));
 
 const corsOptions = {
-    origin: ["http://localhost:3030", "http://10.10.7.24:3030", "http://fundraising.apponislam.top", "https://fundraising.apponislam.top", "http://10.10.26.171:3030"],
+    origin: ["http://localhost:3044", "http://10.10.7.24:3044", "https://oopsy.apponislam.top"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -61,9 +64,17 @@ const swaggerUiOptions = {
     customfavIcon: "/favicon.png",
 };
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
-app.get("/api-docs.json", (req: Request, res: Response) => {
+// Disable caching on documentation endpoints to prevent stale spec resolution in browsers
+const noCacheMiddleware = (req: Request, res: Response, next: express.NextFunction) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    next();
+};
+
+app.use("/api-docs", noCacheMiddleware, swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+app.use("/docs", noCacheMiddleware, swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+app.get("/api-docs.json", noCacheMiddleware, (req: Request, res: Response) => {
     res.setHeader("Content-Type", "application/json");
     res.send(swaggerSpec);
 });
