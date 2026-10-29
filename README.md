@@ -6,6 +6,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas%20%2F%20Mongoose-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8-010101?style=for-the-badge&logo=socket.io&logoColor=white)](https://socket.io/)
 [![Stripe](https://img.shields.io/badge/Stripe-Connect%20%26%20Payments-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com/)
+[![Swagger](https://img.shields.io/badge/Swagger-OpenAPI%203.0-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](http://localhost:5000/api-docs)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg?style=for-the-badge)](https://opensource.org/licenses/ISC)
 
 > Enterprise-grade, multi-tenant RESTful API and real-time WebSocket backend engine powering the **Oopsy** marketplace and facility booking platform. Seamlessly connects clients with space and facility hosts, equipped with automated Stripe payments, host payout transfers via Stripe Connect, geospatial map search, multi-axis reviews, dispute resolution, and super-admin platform governance.
@@ -323,11 +324,14 @@ On startup (`src/server.ts`), the application connects to MongoDB and invokes `s
 
 All RESTful endpoints are prefixed with `/api/v1`.
 
-### 1. System Health & Status
+### 1. System Health & Documentation
 
 | Method | Endpoint | Access | Description |
 | :--- | :--- | :---: | :--- |
 | `GET` | `/` | Public | Visual HTML operational dashboard |
+| `GET` | `/api-docs` | Public | **Interactive Swagger OpenAPI 3.0 Documentation** |
+| `GET` | `/docs` | Public | Convenient alias for Swagger UI |
+| `GET` | `/api-docs.json` | Public | Raw OpenAPI 3.0 JSON specification schema |
 | `GET` | `/api/v1/status` | Public | JSON health check, uptime, environment, and server time |
 
 ---
@@ -729,7 +733,7 @@ A pre-configured Postman collection is included in the root directory:
 
 | Script | Command | Description |
 | :--- | :--- | :--- |
-| `npm run dev` | `ts-node-dev --respawn --transpile-only src/server.ts` | Start server in development mode with hot-reload |
+| `npm run dev` | `tsx watch src/server.ts` | Start server in development mode with fast hot-reload |
 | `npm run build` | `tsc` | Compile TypeScript source code into `dist/` |
 | `npm start` | `node dist/server.js` | Run compiled production bundle |
 | `npm run lint` | `npx eslint src` | Run ESLint static code analysis |
