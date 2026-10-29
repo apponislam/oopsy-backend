@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiError";
 import { UserModel } from "../auth/auth.model";
+import { BookingModel } from "../booking/booking.model";
 
 const getAllUsers = async (query: Record<string, any>) => {
     const {
@@ -137,7 +138,18 @@ const getSingleUser = async (userId: string) => {
         throw new ApiError(httpStatus.NOT_FOUND, "User not found or deleted");
     }
 
-    return user;
+    const bookingCount = await BookingModel.countDocuments({
+        $or: [{ user: user._id }, { host: user._id }],
+    });
+
+    if (user.bookingCount !== bookingCount) {
+        await UserModel.updateOne({ _id: user._id }, { $set: { bookingCount } });
+    }
+
+    const userObj = user.toObject();
+    userObj.bookingCount = bookingCount;
+
+    return userObj;
 };
 
 const updateUserStatus = async (

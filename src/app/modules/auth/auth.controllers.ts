@@ -420,6 +420,12 @@ const updateUserBySuperAdmin = catchAsync(async (req: Request, res: Response) =>
         }
     }
 
+    // Strip read-only and calculated fields
+    delete updateData.bookingCount;
+    delete updateData.balance;
+    delete updateData.averageRating;
+    delete updateData.totalReviews;
+
     const result = await authServices.updateUserBySuperAdmin(userId as string, updateData);
 
     sendResponse(res, {

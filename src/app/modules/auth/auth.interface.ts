@@ -33,6 +33,7 @@ export interface User {
     stripeAccountId?: string;
     averageRating?: number;
     totalReviews?: number;
+    bookingCount?: number;
     isActive: boolean;
     isEmailVerified: boolean;
     isApproved?: boolean;

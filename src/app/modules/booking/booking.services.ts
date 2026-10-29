@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import mongoose, { Types } from "mongoose";
 import ApiError from "../../../errors/ApiError";
 import { ListingModel } from "../listing/listing.model";
+import { UserModel } from "../auth/auth.model";
 import { IBooking, IBookingFilterOptions } from "./booking.interface";
 import { BookingModel } from "./booking.model";
 
@@ -56,6 +57,10 @@ const createBooking = async (
         status: "CONFIRMED",
         isPaid: false,
     });
+
+    // 5. Increment bookingCount for customer and host
+    await UserModel.updateOne({ _id: userId }, { $inc: { bookingCount: 1 } });
+    await UserModel.updateOne({ _id: listing.host }, { $inc: { bookingCount: 1 } });
 
     const populatedBooking = await booking.populate([
         { path: "user", select: "name email phone profileImage" },

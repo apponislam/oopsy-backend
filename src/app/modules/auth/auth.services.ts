@@ -3,6 +3,7 @@ import ApiError from "../../../errors/ApiError";
 import { jwtHelper } from "../../../utils/jwtHelper";
 import config from "../../config";
 import { UserModel } from "./auth.model";
+import { BookingModel } from "../booking/booking.model";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendOtpEmail, sendVerificationEmail, sendWelcomeEmail, sendEmailUpdateVerification, sendAdminCreatedEmail, sendPasswordChangedEmail } from "../../../utils/emailTemplates";
@@ -13,12 +14,21 @@ const registerUser = async (data: any) => {
     const existing = await UserModel.findOne({ email: data.email });
     if (existing) throw new ApiError(httpStatus.BAD_REQUEST, "Email already in use");
 
-    // Remove balance and percentage if sent in payload to prevent manual setting
+    // Remove calculated/protected fields if sent in payload to prevent manual setting
     if (data.balance !== undefined) {
         delete data.balance;
     }
     if (data.percentage !== undefined) {
         delete data.percentage;
+    }
+    if (data.bookingCount !== undefined) {
+        delete data.bookingCount;
+    }
+    if (data.averageRating !== undefined) {
+        delete data.averageRating;
+    }
+    if (data.totalReviews !== undefined) {
+        delete data.totalReviews;
     }
 
     // Hash password
@@ -36,6 +46,7 @@ const registerUser = async (data: any) => {
         isActive: true,
         isEmailVerified: false,
         balance: 0,
+        bookingCount: 0,
         verificationToken,
         verificationCode,
         verificationExpiry,
@@ -83,6 +94,15 @@ const loginUser = async (data: { email: string; password: string }) => {
     // Update last login
     await UserModel.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
 
+    // Calculate real-time booking count across customer and host bookings
+    const bookingCount = await BookingModel.countDocuments({
+        $or: [{ user: user._id }, { host: user._id }],
+    });
+
+    if (user.bookingCount !== bookingCount) {
+        await UserModel.updateOne({ _id: user._id }, { $set: { bookingCount } });
+    }
+
     // Generate tokens
     const jwtPayload = {
         _id: user._id,
@@ -95,19 +115,9 @@ const loginUser = async (data: { email: string; password: string }) => {
     const refreshToken = jwtHelper.generateToken(jwtPayload, config.jwt_refresh_secret as string, config.jwt_refresh_expire as string);
 
     const userObject = user.toObject();
-    const {
-        password,
-        verificationToken,
-        verificationCode,
-        verificationExpiry,
-        resetPasswordOtp,
-        resetPasswordOtpExpiry,
-        resetPasswordToken,
-        resetPasswordTokenExpiry,
-        emailVerificationToken,
-        emailVerificationExpiry,
-        ...userWithoutSensitive
-    } = userObject;
+    const { password, verificationToken, verificationCode, verificationExpiry, resetPasswordOtp, resetPasswordOtpExpiry, resetPasswordToken, resetPasswordTokenExpiry, emailVerificationToken, emailVerificationExpiry, ...userWithoutSensitive } = userObject;
+
+    userWithoutSensitive.bookingCount = bookingCount;
 
     return { user: userWithoutSensitive, accessToken, refreshToken };
 };
@@ -177,7 +187,18 @@ const resendVerificationEmail = async (email: string) => {
 const getUserById = async (userId: string) => {
     const user = await UserModel.findById(userId).select("-password");
     if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
-    return user;
+
+    const bookingCount = await BookingModel.countDocuments({
+        $or: [{ user: user._id }, { host: user._id }],
+    });
+
+    if (user.bookingCount !== bookingCount) {
+        await UserModel.updateOne({ _id: user._id }, { $set: { bookingCount } });
+    }
+
+    const userObj = user.toObject();
+    userObj.bookingCount = bookingCount;
+    return userObj;
 };
 
 const refreshAccessToken = async (refreshToken: string) => {
@@ -189,6 +210,17 @@ const refreshAccessToken = async (refreshToken: string) => {
         const user = await UserModel.findById(decoded._id).select("-password");
         if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, "User associated with this token was not found.");
 
+        const bookingCount = await BookingModel.countDocuments({
+            $or: [{ user: user._id }, { host: user._id }],
+        });
+
+        if (user.bookingCount !== bookingCount) {
+            await UserModel.updateOne({ _id: user._id }, { $set: { bookingCount } });
+        }
+
+        const userObj = user.toObject();
+        userObj.bookingCount = bookingCount;
+
         const jwtPayload = {
             _id: user._id,
             name: user.name,
@@ -198,7 +230,7 @@ const refreshAccessToken = async (refreshToken: string) => {
 
         const accessToken = jwtHelper.generateToken(jwtPayload, config.jwt_access_secret as string, config.jwt_access_expire as string);
 
-        return { user, accessToken };
+        return { user: userObj, accessToken };
     } catch (error) {
         throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid or expired refresh token.");
     }
@@ -289,18 +321,34 @@ const resetPassword = async (token: string, newPassword: string) => {
 };
 
 const updateProfile = async (userId: string, data: any) => {
-    // Prevent manual balance and percentage update
+    // Prevent manual balance, percentage, bookingCount, and rating updates
     if (data.balance !== undefined) {
         delete data.balance;
     }
     if (data.percentage !== undefined) {
         delete data.percentage;
     }
+    if (data.bookingCount !== undefined) {
+        delete data.bookingCount;
+    }
+    if (data.averageRating !== undefined) {
+        delete data.averageRating;
+    }
+    if (data.totalReviews !== undefined) {
+        delete data.totalReviews;
+    }
 
     const user = await UserModel.findByIdAndUpdate(userId, { $set: data }, { returnDocument: "after", runValidators: true }).select("-password");
 
     if (!user) throw new ApiError(httpStatus.NOT_FOUND, "Requested user was not found.");
-    return user;
+
+    const bookingCount = await BookingModel.countDocuments({
+        $or: [{ user: user._id }, { host: user._id }],
+    });
+
+    const userObj = user.toObject();
+    userObj.bookingCount = bookingCount;
+    return userObj;
 };
 
 const changePassword = async (userId: string, currentPassword: string, newPassword: string) => {
@@ -425,6 +473,15 @@ const updateUserBySuperAdmin = async (userId: string, data: any) => {
     if (data.balance !== undefined) {
         delete data.balance;
     }
+    if (data.bookingCount !== undefined) {
+        delete data.bookingCount;
+    }
+    if (data.averageRating !== undefined) {
+        delete data.averageRating;
+    }
+    if (data.totalReviews !== undefined) {
+        delete data.totalReviews;
+    }
     let plainPassword = "";
     // If password is being updated, hash it
     if (data.password) {
@@ -440,7 +497,13 @@ const updateUserBySuperAdmin = async (userId: string, data: any) => {
         sendPasswordChangedEmail(user.email, user.name, plainPassword);
     }
 
-    return user;
+    const bookingCount = await BookingModel.countDocuments({
+        $or: [{ user: user._id }, { host: user._id }],
+    });
+
+    const userObj = user.toObject();
+    userObj.bookingCount = bookingCount;
+    return userObj;
 };
 
 export const authServices = {
