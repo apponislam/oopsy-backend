@@ -131,6 +131,11 @@ const UserSchema = new Schema<User>(
             ref: "User",
         },
 
+        verificationNote: {
+            type: String,
+            default: "",
+        },
+
         isDeleted: {
             type: Boolean,
             default: false,

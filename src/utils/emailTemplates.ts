@@ -10,16 +10,16 @@ export const sendVerificationEmail = (email: string, name: string, verificationU
                 <a href="${verificationUrl}" target="_blank" style="background-color: #0B6E7F; background-image: linear-gradient(to right, #0B6E7F, #0ea5e9); color: #ffffff !important; padding: 12px 30px; text-decoration: none !important; border-radius: 24px; display: inline-block; font-weight: 500; font-size: 14px; text-align: center; border: none;">Verify Email</a>
             </div>
             <p style="color: #8a8a8a; font-size: 12px; line-height: 1.6; word-break: break-all;">Or copy this link: <span style="word-break: break-all;">${verificationUrl}</span></p>
-            ${""/*
+            ${
                 otp
-                    ? `<div style="margin-top: 24px; padding: 16px; background: #fffaf0; border-radius: 8px; border: 1px solid #ffe8b8;">
-                        <p style="color: #0B6E7F; font-size: 14px; text-align: center; margin: 0 0 8px 0;">Or enter this 6-digit code in the app:</p>
-                        <p style="color: #1a1a1a; font-size: 28px; text-align: center; margin: 0; font-weight: bold; letter-spacing: 6px;">${otp}</p>
-                        <p style="color: #8a8a8a; font-size: 12px; text-align: center; margin: 8px 0 0 0;">OTP expires in 10 minutes.</p>
+                    ? `<div style="margin-top: 24px; padding: 16px; background: #fffaf0; border-radius: 8px; border: 1px solid #ffe8b8; text-align: center;">
+                        <p style="color: #0B6E7F; font-size: 14px; text-align: center; margin: 0 0 8px 0; font-weight: bold;">Or enter this 6-digit code in the app:</p>
+                        <p style="color: #1a1a1a; font-size: 30px; text-align: center; margin: 0; font-weight: bold; letter-spacing: 6px;">${otp}</p>
+                        <p style="color: #8a8a8a; font-size: 12px; text-align: center; margin: 8px 0 0 0;">Code expires in 24 hours.</p>
                        </div>`
                     : ""
-            */}
-            <p style="color: #8a8a8a; font-size: 12px; margin-top: 24px;">This link expires in 24 hours.</p>
+            }
+            <p style="color: #8a8a8a; font-size: 12px; margin-top: 24px;">This link and code expire in 24 hours.</p>
         </div>
     `;
     sendMail(email, "Verify Your Email", html);

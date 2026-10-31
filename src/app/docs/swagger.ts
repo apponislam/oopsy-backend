@@ -90,6 +90,7 @@ export const swaggerSpec = {
                     isActive: { type: "boolean", example: true },
                     isEmailVerified: { type: "boolean", example: true, readOnly: true },
                     isApproved: { type: "boolean", example: true },
+                    verificationNote: { type: "string", example: "Documents verified against business registry" },
                     referralCode: { type: "string", example: "PIT67FU9", readOnly: true },
                     averageRating: { type: "number", example: 4.8, readOnly: true },
                     totalReviews: { type: "number", example: 12, readOnly: true },

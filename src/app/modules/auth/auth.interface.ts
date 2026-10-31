@@ -43,6 +43,7 @@ export interface User {
     isEmailVerified: boolean;
     isApproved?: boolean;
     approvedBy?: Types.ObjectId;
+    verificationNote?: string;
     isDeleted: boolean;
     lastLogin?: Date;
 

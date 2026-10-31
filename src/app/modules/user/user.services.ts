@@ -182,7 +182,7 @@ const getSingleUser = async (userId: string) => {
 
 const updateUserStatus = async (
     userId: string,
-    payload: { isActive?: boolean; isApproved?: boolean; isEmailVerified?: boolean },
+    payload: { isActive?: boolean; isApproved?: boolean; isEmailVerified?: boolean; verificationNote?: string },
     adminId?: string
 ) => {
     const user = await UserModel.findById(userId);
@@ -204,6 +204,10 @@ const updateUserStatus = async (
 
     if (payload.isEmailVerified !== undefined) {
         user.isEmailVerified = payload.isEmailVerified;
+    }
+
+    if (payload.verificationNote !== undefined) {
+        user.verificationNote = payload.verificationNote;
     }
 
     await user.save();
