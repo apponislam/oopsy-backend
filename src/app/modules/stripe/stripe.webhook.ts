@@ -42,6 +42,9 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
                         receiverId = listing.host as unknown as Types.ObjectId;
                     }
                 }
+                if (!receiverId && existingPayment && existingPayment.receiver) {
+                    receiverId = existingPayment.receiver as Types.ObjectId;
+                }
 
                 const amountPaid = paymentIntent.amount / 100;
 
@@ -76,10 +79,13 @@ const handleStripeWebhook = async (signature: string, rawBody: Buffer) => {
                     await existingPayment.save();
                 }
 
-                // Automatically credit receiver's (host's) net balance (amount minus platform fee)
+                // Automatically credit receiver's (host's) net balance (amount minus platform fee) and increase totalRevenue
                 if (receiverId) {
                     await UserModel.findByIdAndUpdate(receiverId, {
-                        $inc: { balance: netAmountForHost },
+                        $inc: {
+                            balance: netAmountForHost,
+                            totalRevenue: netAmountForHost,
+                        },
                     });
                 }
             }

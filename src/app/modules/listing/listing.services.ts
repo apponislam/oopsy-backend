@@ -4,7 +4,14 @@ import fs from "fs";
 import ApiError from "../../../errors/ApiError";
 import { IListing, IListingMapQuery } from "./listing.interface";
 import { ListingModel } from "./listing.model";
+import { UserModel } from "../auth/auth.model";
 import { FavoriteModel } from "../favorite/favorite.model";
+
+const syncHostListingCount = async (hostId: string) => {
+    const totalListings = await ListingModel.countDocuments({ host: hostId, isDeleted: false });
+    await UserModel.updateOne({ _id: hostId }, { listingCount: totalListings });
+    return totalListings;
+};
 
 const createListing = async (hostId: string, payload: Partial<IListing>, files?: Express.Multer.File[]) => {
     let photoUrls: string[] = payload.photos || [];
@@ -20,6 +27,7 @@ const createListing = async (hostId: string, payload: Partial<IListing>, files?:
     };
 
     const listing = await ListingModel.create(listingData);
+    await syncHostListingCount(hostId);
     return listing;
 };
 
@@ -325,6 +333,8 @@ const updateListing = async (
         { returnDocument: "after", runValidators: true },
     );
 
+    await syncHostListingCount(hostId);
+
     return updatedListing;
 };
 
@@ -342,6 +352,8 @@ const toggleListingStatus = async (id: string, hostId: string) => {
     listing.isActive = !listing.isActive;
     await listing.save();
 
+    await syncHostListingCount(hostId);
+
     return listing;
 };
 
@@ -358,6 +370,8 @@ const deleteListing = async (id: string, hostId: string) => {
 
     listing.isDeleted = true;
     await listing.save();
+
+    await syncHostListingCount(hostId);
 
     return { message: "Listing deleted successfully" };
 };

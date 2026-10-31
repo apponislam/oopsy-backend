@@ -24,6 +24,12 @@ const registerUser = async (data: any) => {
     if (data.bookingCount !== undefined) {
         delete data.bookingCount;
     }
+    if (data.listingCount !== undefined) {
+        delete data.listingCount;
+    }
+    if (data.totalRevenue !== undefined) {
+        delete data.totalRevenue;
+    }
     if (data.averageRating !== undefined) {
         delete data.averageRating;
     }
@@ -47,6 +53,10 @@ const registerUser = async (data: any) => {
         isEmailVerified: false,
         balance: 0,
         bookingCount: 0,
+        ...(data.role === "PROVIDER" && {
+            listingCount: 0,
+            totalRevenue: 0,
+        }),
         verificationToken,
         verificationCode,
         verificationExpiry,
@@ -331,6 +341,12 @@ const updateProfile = async (userId: string, data: any) => {
     if (data.bookingCount !== undefined) {
         delete data.bookingCount;
     }
+    if (data.listingCount !== undefined) {
+        delete data.listingCount;
+    }
+    if (data.totalRevenue !== undefined) {
+        delete data.totalRevenue;
+    }
     if (data.averageRating !== undefined) {
         delete data.averageRating;
     }
@@ -475,6 +491,12 @@ const updateUserBySuperAdmin = async (userId: string, data: any) => {
     }
     if (data.bookingCount !== undefined) {
         delete data.bookingCount;
+    }
+    if (data.listingCount !== undefined) {
+        delete data.listingCount;
+    }
+    if (data.totalRevenue !== undefined) {
+        delete data.totalRevenue;
     }
     if (data.averageRating !== undefined) {
         delete data.averageRating;

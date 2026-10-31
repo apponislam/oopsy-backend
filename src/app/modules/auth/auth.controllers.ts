@@ -422,6 +422,8 @@ const updateUserBySuperAdmin = catchAsync(async (req: Request, res: Response) =>
 
     // Strip read-only and calculated fields
     delete updateData.bookingCount;
+    delete updateData.listingCount;
+    delete updateData.totalRevenue;
     delete updateData.balance;
     delete updateData.averageRating;
     delete updateData.totalReviews;

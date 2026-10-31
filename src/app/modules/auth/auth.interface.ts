@@ -34,6 +34,11 @@ export interface User {
     averageRating?: number;
     totalReviews?: number;
     bookingCount?: number;
+
+    // Provider specific metrics (only present for PROVIDER role)
+    listingCount?: number;
+    totalRevenue?: number;
+
     isActive: boolean;
     isEmailVerified: boolean;
     isApproved?: boolean;

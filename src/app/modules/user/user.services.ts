@@ -101,12 +101,35 @@ const getAllUsers = async (query: Record<string, any>) => {
                         },
                     },
                     activeUsers: { $sum: { $cond: [{ $eq: ["$isActive", true] }, 1, 0] } },
+                    verifiedProviders: {
+                        $sum: {
+                            $cond: [{ $and: [{ $eq: ["$role", "PROVIDER"] }, { $eq: ["$isApproved", true] }] }, 1, 0],
+                        },
+                    },
+                    pendingProviders: {
+                        $sum: {
+                            $cond: [{ $and: [{ $eq: ["$role", "PROVIDER"] }, { $eq: ["$isApproved", false] }] }, 1, 0],
+                        },
+                    },
+                    suspendedProviders: {
+                        $sum: {
+                            $cond: [{ $and: [{ $eq: ["$role", "PROVIDER"] }, { $eq: ["$isActive", false] }] }, 1, 0],
+                        },
+                    },
                 },
             },
         ]),
     ]);
 
+    const aggregated = stats[0] || {};
     const totalPages = Math.ceil(total / limitNumber);
+
+    const providerStats = {
+        total: aggregated.totalProviders || 0,
+        verified: aggregated.verifiedProviders || 0,
+        pending: aggregated.pendingProviders || 0,
+        suspended: aggregated.suspendedProviders || 0,
+    };
 
     return {
         meta: {
@@ -117,12 +140,17 @@ const getAllUsers = async (query: Record<string, any>) => {
             hasNext: pageNumber < totalPages,
             hasPrev: pageNumber > 1,
         },
-        stats: stats[0] || {
-            totalUsers: total,
-            totalClients: 0,
-            totalProviders: 0,
-            pendingApprovals: 0,
-            activeUsers: 0,
+        stats: {
+            totalUsers: aggregated.totalUsers || total,
+            totalClients: aggregated.totalClients || 0,
+            totalProviders: aggregated.totalProviders || 0,
+            pendingApprovals: aggregated.pendingProviders || 0,
+            activeUsers: aggregated.activeUsers || 0,
+            verifiedProviders: aggregated.verifiedProviders || 0,
+            pendingProviders: aggregated.pendingProviders || 0,
+            suspendedProviders: aggregated.suspendedProviders || 0,
+            providerStats,
+            provider: providerStats,
         },
         data: users,
     };

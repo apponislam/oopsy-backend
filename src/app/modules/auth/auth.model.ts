@@ -94,6 +94,23 @@ const UserSchema = new Schema<User>(
             min: 0,
         },
 
+        // Provider-only metrics (strictly for PROVIDER role, never for CLIENT / USER)
+        listingCount: {
+            type: Number,
+            min: 0,
+            default: function (this: any) {
+                return this.role === "PROVIDER" ? 0 : undefined;
+            },
+        },
+
+        totalRevenue: {
+            type: Number,
+            min: 0,
+            default: function (this: any) {
+                return this.role === "PROVIDER" ? 0 : undefined;
+            },
+        },
+
         isActive: {
             type: Boolean,
             default: true,
@@ -163,6 +180,30 @@ const UserSchema = new Schema<User>(
                 delete ret.emailVerificationToken;
                 delete ret.emailVerificationExpiry;
                 delete ret.pendingEmail;
+                if (ret.role !== "PROVIDER") {
+                    delete ret.listingCount;
+                    delete ret.totalRevenue;
+                }
+                return ret;
+            },
+        },
+        toObject: {
+            transform(doc, ret: Partial<User>) {
+                delete ret.password;
+                delete ret.resetPasswordOtp;
+                delete ret.resetPasswordOtpExpiry;
+                delete ret.resetPasswordToken;
+                delete ret.resetPasswordTokenExpiry;
+                delete ret.verificationToken;
+                delete ret.verificationCode;
+                delete ret.verificationExpiry;
+                delete ret.emailVerificationToken;
+                delete ret.emailVerificationExpiry;
+                delete ret.pendingEmail;
+                if (ret.role !== "PROVIDER") {
+                    delete ret.listingCount;
+                    delete ret.totalRevenue;
+                }
                 return ret;
             },
         },
