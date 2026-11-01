@@ -6,6 +6,8 @@ import { IListing, IListingMapQuery } from "./listing.interface";
 import { ListingModel } from "./listing.model";
 import { UserModel } from "../auth/auth.model";
 import { FavoriteModel } from "../favorite/favorite.model";
+import { parseListingBody } from "./listing.utils";
+import { getCoordinatesFromAddress } from "../../../utils/getCoordinates";
 
 const syncHostListingCount = async (hostId: string) => {
     const totalListings = await ListingModel.countDocuments({ host: hostId, isDeleted: false });
@@ -14,14 +16,26 @@ const syncHostListingCount = async (hostId: string) => {
 };
 
 const createListing = async (hostId: string, payload: Partial<IListing>, files?: Express.Multer.File[]) => {
-    let photoUrls: string[] = payload.photos || [];
+    const sanitizedPayload = parseListingBody(payload);
+
+    if (sanitizedPayload.location?.address && !sanitizedPayload.location?.location?.coordinates) {
+        const coordinates = await getCoordinatesFromAddress(sanitizedPayload.location.address);
+        if (coordinates) {
+            sanitizedPayload.location.location = {
+                type: "Point",
+                coordinates,
+            };
+        }
+    }
+
+    let photoUrls: string[] = sanitizedPayload.photos || [];
     if (files && Array.isArray(files) && files.length > 0) {
         const uploadedUrls = files.map((file) => file.filename);
         photoUrls = [...photoUrls, ...uploadedUrls];
     }
 
     const listingData = {
-        ...payload,
+        ...sanitizedPayload,
         host: hostId,
         photos: photoUrls,
     };
@@ -279,6 +293,18 @@ const updateListing = async (
     payload: any,
     files?: Express.Multer.File[],
 ) => {
+    const sanitizedPayload = parseListingBody(payload);
+
+    if (sanitizedPayload.location?.address && !sanitizedPayload.location?.location?.coordinates) {
+        const coordinates = await getCoordinatesFromAddress(sanitizedPayload.location.address);
+        if (coordinates) {
+            sanitizedPayload.location.location = {
+                type: "Point",
+                coordinates,
+            };
+        }
+    }
+
     const existingListing = await ListingModel.findOne({ _id: id, isDeleted: false });
 
     if (!existingListing) {
@@ -292,8 +318,8 @@ const updateListing = async (
     let currentPhotos = existingListing.photos || [];
 
     // 1. Remove photos specified in removePhotos array
-    if (payload.removePhotos && Array.isArray(payload.removePhotos) && payload.removePhotos.length > 0) {
-        const removePhotos: string[] = payload.removePhotos;
+    if (sanitizedPayload.removePhotos && Array.isArray(sanitizedPayload.removePhotos) && sanitizedPayload.removePhotos.length > 0) {
+        const removePhotos: string[] = sanitizedPayload.removePhotos;
         currentPhotos = currentPhotos.filter((photo) => !removePhotos.includes(photo));
 
         // Delete photo files from disk
@@ -307,7 +333,7 @@ const updateListing = async (
                 // Ignore file unlink error if missing
             }
         }
-        delete payload.removePhotos;
+        delete sanitizedPayload.removePhotos;
     }
 
     // 2. Add new uploaded photo files
@@ -317,19 +343,19 @@ const updateListing = async (
     }
 
     // If photos was passed in payload explicitly, use that base + uploaded
-    if (payload.photos && Array.isArray(payload.photos)) {
-        currentPhotos = payload.photos;
+    if (sanitizedPayload.photos && Array.isArray(sanitizedPayload.photos)) {
+        currentPhotos = sanitizedPayload.photos;
         if (files && Array.isArray(files) && files.length > 0) {
             const uploadedUrls = files.map((file) => file.filename);
             currentPhotos = [...currentPhotos, ...uploadedUrls].slice(0, 10);
         }
     }
 
-    payload.photos = currentPhotos;
+    sanitizedPayload.photos = currentPhotos;
 
     const updatedListing = await ListingModel.findByIdAndUpdate(
         id,
-        { $set: payload },
+        { $set: sanitizedPayload },
         { returnDocument: "after", runValidators: true },
     );
 

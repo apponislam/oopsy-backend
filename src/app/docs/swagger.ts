@@ -1073,6 +1073,63 @@ export const swaggerSpec = {
                 requestBody: {
                     required: true,
                     content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                required: ["name", "facilityType", "description", "capacity", "location", "pricingTiers"],
+                                properties: {
+                                    name: { type: "string", example: "Urban Music Rehearsal Studio" },
+                                    facilityType: { type: "string", example: "66f42b3c7d1e8a0012345678" },
+                                    description: { type: "string", example: "Soundproof studio with full drum kit and PA." },
+                                    capacity: { type: "number", example: 5 },
+                                    smokingPolicy: { type: "string", example: "Strictly No Smoking" },
+                                    amenities: {
+                                        type: "array",
+                                        items: { type: "string" },
+                                        example: ["WiFi", "Air Conditioning", "Amplifiers"],
+                                    },
+                                    customTags: {
+                                        type: "array",
+                                        items: { type: "string" },
+                                        example: ["Rehearsal", "Music"],
+                                    },
+                                    location: {
+                                        type: "object",
+                                        required: ["address"],
+                                        properties: {
+                                            address: { type: "string", example: "100 Broadway, NY" },
+                                            floorUnit: { type: "string", example: "Basement A" },
+                                            accessInstructions: { type: "string", example: "Code: 4921" },
+                                            location: {
+                                                type: "object",
+                                                properties: {
+                                                    type: { type: "string", example: "Point" },
+                                                    coordinates: {
+                                                        type: "array",
+                                                        items: { type: "number" },
+                                                        example: [-73.98, 40.75],
+                                                        description: "[longitude, latitude]",
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                    pricingTiers: {
+                                        type: "array",
+                                        items: { $ref: "#/components/schemas/PricingTier" },
+                                    },
+                                    availableDays: {
+                                        type: "array",
+                                        items: { $ref: "#/components/schemas/AvailabilitySlot" },
+                                    },
+                                    photos: {
+                                        type: "array",
+                                        items: { type: "string" },
+                                        example: ["/uploads/listing-photos/sample.webp"],
+                                    },
+                                },
+                            },
+                        },
                         "multipart/form-data": {
                             schema: {
                                 type: "object",
@@ -1085,7 +1142,7 @@ export const swaggerSpec = {
                                     smokingPolicy: { type: "string", example: "Strictly No Smoking" },
                                     amenities: {
                                         type: "string",
-                                        description: "JSON stringified array of amenities",
+                                        description: "JSON stringified array of amenities (or comma-separated)",
                                         example: "[\"WiFi\",\"Air Conditioning\",\"Amplifiers\"]",
                                     },
                                     customTags: {
@@ -1157,15 +1214,99 @@ export const swaggerSpec = {
                 parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
                 requestBody: {
                     content: {
+                        "application/json": {
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    name: { type: "string", example: "Urban Music Rehearsal Studio Updated" },
+                                    facilityType: { type: "string", example: "66f42b3c7d1e8a0012345678" },
+                                    description: { type: "string", example: "Updated description..." },
+                                    capacity: { type: "number", example: 6 },
+                                    smokingPolicy: { type: "string", example: "Non-Smoking" },
+                                    amenities: {
+                                        type: "array",
+                                        items: { type: "string" },
+                                        example: ["WiFi", "Air Conditioning", "Microphones"],
+                                    },
+                                    customTags: {
+                                        type: "array",
+                                        items: { type: "string" },
+                                        example: ["Studio", "Music"],
+                                    },
+                                    location: {
+                                        type: "object",
+                                        properties: {
+                                            address: { type: "string", example: "100 Broadway, NY" },
+                                            floorUnit: { type: "string", example: "Basement A" },
+                                            accessInstructions: { type: "string", example: "Code: 4921" },
+                                            location: {
+                                                type: "object",
+                                                properties: {
+                                                    type: { type: "string", example: "Point" },
+                                                    coordinates: {
+                                                        type: "array",
+                                                        items: { type: "number" },
+                                                        example: [-73.98, 40.75],
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                    pricingTiers: {
+                                        type: "array",
+                                        items: { $ref: "#/components/schemas/PricingTier" },
+                                    },
+                                    availableDays: {
+                                        type: "array",
+                                        items: { $ref: "#/components/schemas/AvailabilitySlot" },
+                                    },
+                                    removePhotos: {
+                                        type: "array",
+                                        items: { type: "string" },
+                                        example: ["/uploads/listing-photos/sample.webp"],
+                                    },
+                                },
+                            },
+                        },
                         "multipart/form-data": {
                             schema: {
                                 type: "object",
                                 properties: {
-                                    name: { type: "string" },
-                                    description: { type: "string" },
-                                    pricingTiers: { type: "string" },
-                                    availableDays: { type: "string" },
-                                    photos: { type: "array", items: { type: "string", format: "binary" } },
+                                    name: { type: "string", example: "Urban Music Rehearsal Studio Updated" },
+                                    facilityType: { type: "string", example: "66f42b3c7d1e8a0012345678" },
+                                    description: { type: "string", example: "Updated description..." },
+                                    capacity: { type: "number", example: 6 },
+                                    smokingPolicy: { type: "string", example: "Non-Smoking" },
+                                    amenities: {
+                                        type: "string",
+                                        description: "JSON stringified array of amenities or comma-separated",
+                                        example: "[\"WiFi\",\"Air Conditioning\"]",
+                                    },
+                                    customTags: { type: "string", example: "[\"Studio\"]" },
+                                    location: {
+                                        type: "string",
+                                        description: "JSON stringified IListingLocation",
+                                        example: "{\"address\":\"100 Broadway, NY\",\"floorUnit\":\"Basement A\",\"accessInstructions\":\"Code: 4921\",\"location\":{\"type\":\"Point\",\"coordinates\":[-73.98,40.75]}}",
+                                    },
+                                    pricingTiers: {
+                                        type: "string",
+                                        description: "JSON stringified array of IPricingTier",
+                                        example: "[{\"durationMinutes\":30,\"price\":20},{\"durationMinutes\":60,\"price\":35}]",
+                                    },
+                                    availableDays: {
+                                        type: "string",
+                                        description: "JSON stringified array of IAvailabilitySlot",
+                                        example: "[{\"day\":\"Monday\",\"startTime\":\"09:00\",\"endTime\":\"21:00\",\"isAvailable\":true}]",
+                                    },
+                                    removePhotos: {
+                                        type: "string",
+                                        description: "JSON stringified array of photo paths to remove",
+                                        example: "[\"/uploads/listing-photos/sample.webp\"]",
+                                    },
+                                    photos: {
+                                        type: "array",
+                                        items: { type: "string", format: "binary" },
+                                    },
                                 },
                             },
                         },

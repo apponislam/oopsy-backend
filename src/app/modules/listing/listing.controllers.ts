@@ -3,17 +3,10 @@ import httpStatus from "http-status";
 import catchAsync from "../../../utils/catchAsync";
 import sendResponse from "../../../utils/sendResponse";
 import { listingServices } from "./listing.services";
+import { parseListingBody } from "./listing.utils";
 
 const createListing = catchAsync(async (req: Request, res: Response) => {
-    let bodyData = req.body;
-    if (req.body.data && typeof req.body.data === "string") {
-        try {
-            bodyData = JSON.parse(req.body.data);
-        } catch (e) {
-            // keep req.body as is if parse fails
-        }
-    }
-
+    const bodyData = parseListingBody(req.body);
     const hostId = (req as any).user._id;
     const files = req.files as Express.Multer.File[];
 
@@ -93,17 +86,9 @@ const getSingleListing = catchAsync(async (req: Request, res: Response) => {
 const updateListing = catchAsync(async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const hostId = (req as any).user._id;
-
-    let bodyData = req.body;
-    if (req.body.data && typeof req.body.data === "string") {
-        try {
-            bodyData = JSON.parse(req.body.data);
-        } catch (e) {
-            // keep req.body as is if parse fails
-        }
-    }
-
+    const bodyData = parseListingBody(req.body);
     const files = req.files as Express.Multer.File[];
+
     const result = await listingServices.updateListing(id, hostId, bodyData, files);
 
     sendResponse(res, {

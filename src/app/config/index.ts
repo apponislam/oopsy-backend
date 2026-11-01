@@ -15,6 +15,7 @@ export default {
     jwt_password_reset_secret: process.env.JWT_PASSWORD_RESET_SECRET,
     client_url: process.env.CLIENT_URL,
     server_url: process.env.SERVER_URL || `http://${process.env.IP || 'localhost'}:${process.env.PORT || 5000}`,
+    maps_api_key: process.env.MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "",
     mail: {
         smtp_host: process.env.SMTP_HOST,
         smtp_port: process.env.SMTP_PORT,
