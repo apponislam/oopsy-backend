@@ -6,8 +6,10 @@ import { IListing, IListingMapQuery } from "./listing.interface";
 import { ListingModel } from "./listing.model";
 import { UserModel } from "../auth/auth.model";
 import { FavoriteModel } from "../favorite/favorite.model";
+import { CategoryModel } from "../category/category.model";
 import { parseListingBody } from "./listing.utils";
 import { getCoordinatesFromAddress } from "../../../utils/getCoordinates";
+import mongoose from "mongoose";
 
 const syncHostListingCount = async (hostId: string) => {
     const totalListings = await ListingModel.countDocuments({ host: hostId, isDeleted: false });
@@ -17,6 +19,27 @@ const syncHostListingCount = async (hostId: string) => {
 
 const createListing = async (hostId: string, payload: Partial<IListing>, files?: Express.Multer.File[]) => {
     const sanitizedPayload = parseListingBody(payload);
+
+    if (!sanitizedPayload.facilityType) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Please select a facility category for your listing");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(sanitizedPayload.facilityType as any)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Please select a valid facility category");
+    }
+
+    const category = await CategoryModel.findOne({
+        _id: sanitizedPayload.facilityType,
+        isDeleted: false,
+    });
+
+    if (!category) {
+        throw new ApiError(httpStatus.NOT_FOUND, "The selected category is no longer available");
+    }
+
+    if (!category.isActive) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "The selected category is currently unavailable. Please choose another category");
+    }
 
     if (sanitizedPayload.location?.address && !sanitizedPayload.location?.location?.coordinates) {
         const coordinates = await getCoordinatesFromAddress(sanitizedPayload.location.address);
@@ -294,6 +317,25 @@ const updateListing = async (
     files?: Express.Multer.File[],
 ) => {
     const sanitizedPayload = parseListingBody(payload);
+
+    if (sanitizedPayload.facilityType !== undefined) {
+        if (!mongoose.Types.ObjectId.isValid(sanitizedPayload.facilityType as any)) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "Please select a valid facility category");
+        }
+
+        const category = await CategoryModel.findOne({
+            _id: sanitizedPayload.facilityType,
+            isDeleted: false,
+        });
+
+        if (!category) {
+            throw new ApiError(httpStatus.NOT_FOUND, "The selected category is no longer available");
+        }
+
+        if (!category.isActive) {
+            throw new ApiError(httpStatus.BAD_REQUEST, "The selected category is currently unavailable. Please choose another category");
+        }
+    }
 
     if (sanitizedPayload.location?.address && !sanitizedPayload.location?.location?.coordinates) {
         const coordinates = await getCoordinatesFromAddress(sanitizedPayload.location.address);
